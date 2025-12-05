@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prime Mandala Lab — Unified Engine</title>
+  <style>
+    :root {
+      --bg: #05060a;
+      --panel: #0f121a;
+      --accent: #c6ff6f;
+      --text: #e6f1ff;
+      --muted: #9fb2cf;
+      --chip: #131927;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: "Inter", system-ui, -apple-system, sans-serif;
+      background: radial-gradient(circle at 20% 20%, #101524 0%, #06080f 45%, #04060b 100%);
+      color: var(--text);
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #sidebar {
+      background: var(--panel);
+      border-right: 1px solid #1c2333;
+      padding: 18px;
+      overflow-y: auto;
+      box-shadow: 0 0 32px rgba(0, 0, 0, 0.6);
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      letter-spacing: 0.08em;
+      font-size: 20px;
+      text-transform: uppercase;
+    }
+
+    h2 {
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      margin: 18px 0 8px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    p { margin: 6px 0 10px; color: #c8d6f2; line-height: 1.5; }
+
+    .row { display: flex; gap: 8px; margin-bottom: 8px; }
+    .row button { flex: 1; }
+
+    label { font-size: 12px; color: var(--muted); letter-spacing: 0.04em; }
+
+    input[type="range"],
+    input[type="text"],
+    textarea,
+    button,
+    select {
+      width: 100%;
+      border: 1px solid #1f2937;
+      background: #0a0d14;
+      color: var(--text);
+      border-radius: 6px;
+      padding: 8px;
+      font-size: 12px;
+      outline: none;
+    }
+
+    input[type="range"] { padding: 0; }
+
+    button {
+      cursor: pointer;
+      background: linear-gradient(135deg, #0f161f, #182030);
+      transition: transform 0.15s, border-color 0.2s;
+    }
+
+    button:hover { border-color: var(--accent); transform: translateY(-1px); }
+
+    textarea {
+      min-height: 70px;
+      resize: vertical;
+      font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+    }
+
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 12px; }
+    .chip {
+      background: var(--chip);
+      border: 1px solid #1f2736;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .chip.active { border-color: var(--accent); color: var(--accent); }
+
+    #canvas-wrap {
+      position: relative;
+      background: #03050b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    canvas { width: 100%; height: 100%; display: block; background: radial-gradient(circle at 50% 45%, rgba(50,70,110,0.15), rgba(2,4,8,0.92)); }
+
+    .group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    small { color: #93a4c4; display: block; margin-top: 4px; font-size: 11px; line-height: 1.4; }
+
+    #analysis { background: #0c111c; border: 1px solid #1b2333; border-radius: 8px; padding: 10px; font-size: 11px; line-height: 1.6; }
+
+    .badge { display: inline-block; padding: 2px 6px; border-radius: 6px; background: #131c2e; color: #c6d8ff; margin-right: 4px; }
+  </style>
+</head>
+<body>
+  <aside id="sidebar">
+    <h1>Prime Mandala Lab</h1>
+    <p>Unified engine: the same base-60 RED/BLACK/BLUE sequences projected into eight dimensional lenses.</p>
+
+    <h2>Sequences</h2>
+    <div class="row">
+      <button id="random-seq">Randomize</button>
+      <button id="prime-seq">Prime Bias</button>
+    </div>
+    <label for="red-seq">Red lineage (60 digits 0-59)</label>
+    <textarea id="red-seq"></textarea>
+    <label for="black-seq">Black lineage (60 digits 0-59)</label>
+    <textarea id="black-seq"></textarea>
+    <label for="blue-seq">Blue lineage (60 digits 0-59)</label>
+    <textarea id="blue-seq"></textarea>
+    <small>Paste comma/space separated digits. Everything is taken mod 60.</small>
+
+    <h2>Projection Modes</h2>
+    <div class="chips" id="mode-chips"></div>
+    <small>Keyboard: 1-8 switch modes • Space toggles freeze • P triggers Prime Pulse • I inverts red↔blue.</small>
+
+    <h2>Controls</h2>
+    <div class="group">
+      <label for="intensity">Quantum Intensity</label>
+      <input type="range" id="intensity" min="0.1" max="2" step="0.05" value="1" />
+      <label for="rotation">Rotation Speed</label>
+      <input type="range" id="rotation" min="0" max="0.2" step="0.005" value="0.04" />
+      <label for="prime-sense">Prime Sensitivity</label>
+      <input type="range" id="prime-sense" min="0" max="3" step="0.1" value="1.2" />
+      <label for="harmonic">Harmonic Depth</label>
+      <input type="range" id="harmonic" min="1" max="12" step="1" value="6" />
+      <label for="lineage-mix">Lineage Mix</label>
+      <input type="range" id="lineage-mix" min="0" max="1" step="0.05" value="0.5" />
+      <label for="speed">Update Speed (ms)</label>
+      <input type="range" id="speed" min="16" max="180" step="4" value="60" />
+    </div>
+    <div class="row">
+      <button id="prime-pulse">Prime Pulse</button>
+      <button id="invert">Invert Red↔Blue</button>
+    </div>
+    <div class="row">
+      <button id="play">Pause</button>
+      <button id="snapshot">Screenshot</button>
+    </div>
+    <div class="row">
+      <button id="export">Export State</button>
+      <button id="import">Import State</button>
+    </div>
+    <textarea id="state-area" placeholder="JSON export/import"></textarea>
+
+    <h2>Live Analysis</h2>
+    <div id="analysis"></div>
+  </aside>
+
+  <section id="canvas-wrap">
+    <canvas id="view" width="1400" height="1000" aria-label="Prime Mandala Lab canvas"></canvas>
+  </section>
+
+  <script>
+    // --- Prime helpers -------------------------------------------------------
+    const isPrime = (n) => {
+      if (n < 2) return false;
+      for (let i = 2; i * i <= n; i++) if (n % i === 0) return false;
+      return true;
+    };
+    const primeSet = new Set(Array.from({ length: 60 }, (_, i) => i).filter(isPrime));
+
+    // --- UI wiring -----------------------------------------------------------
+    const canvas = document.getElementById("view");
+    const ctx = canvas.getContext("2d");
+    const wrap = document.getElementById("canvas-wrap");
+    const ui = {
+      red: document.getElementById("red-seq"),
+      black: document.getElementById("black-seq"),
+      blue: document.getElementById("blue-seq"),
+      modeChips: document.getElementById("mode-chips"),
+      intensity: document.getElementById("intensity"),
+      rotation: document.getElementById("rotation"),
+      primeSense: document.getElementById("prime-sense"),
+      harmonic: document.getElementById("harmonic"),
+      mix: document.getElementById("lineage-mix"),
+      speed: document.getElementById("speed"),
+      primePulse: document.getElementById("prime-pulse"),
+      invert: document.getElementById("invert"),
+      play: document.getElementById("play"),
+      snapshot: document.getElementById("snapshot"),
+      export: document.getElementById("export"),
+      import: document.getElementById("import"),
+      stateArea: document.getElementById("state-area"),
+      analysis: document.getElementById("analysis"),
+    };
+
+    const defaultDigits = () => Array.from({ length: 60 }, () => Math.floor(Math.random() * 60));
+    const primeBiasedDigits = () => Array.from({ length: 60 }, (_, i) => (isPrime(i) ? i : Math.floor(Math.random() * 60)));
+
+    const sequences = {
+      red: defaultDigits(),
+      black: defaultDigits(),
+      blue: defaultDigits(),
+    };
+
+    const seqToText = (arr) => arr.join(", ");
+    const textToSeq = (text) => {
+      const nums = text
+        .split(/[^0-9]+/)
+        .filter((t) => t.length)
+        .map((n) => ((parseInt(n, 10) % 60) + 60) % 60);
+      while (nums.length < 60) nums.push(0);
+      return nums.slice(0, 60);
+    };
+
+    const updateInputs = () => {
+      ui.red.value = seqToText(sequences.red);
+      ui.black.value = seqToText(sequences.black);
+      ui.blue.value = seqToText(sequences.blue);
+    };
+
+    const syncSequences = () => {
+      sequences.red = textToSeq(ui.red.value);
+      sequences.black = textToSeq(ui.black.value);
+      sequences.blue = textToSeq(ui.blue.value);
+    };
+
+    updateInputs();
+
+    // --- Modes ---------------------------------------------------------------
+    const modes = [
+      { key: "quantum", label: "1 · Quantum Field" },
+      { key: "primeLattice", label: "2 · Prime Lattice" },
+      { key: "harmonic", label: "3 · Harmonic Web" },
+      { key: "ca", label: "4 · CA Evolution" },
+      { key: "yantra", label: "5 · Yantra Bloom" },
+      { key: "crypto", label: "6 · Cryptic Dance" },
+      { key: "hepta", label: "7 · Hepta-Sync" },
+      { key: "tesseract", label: "8 · 4D Tesseract" },
+    ];
+
+    let mode = modes[0].key;
+    const modeButtons = modes.map((m) => {
+      const el = document.createElement("div");
+      el.textContent = m.label;
+      el.className = "chip";
+      el.addEventListener("click", () => setMode(m.key));
+      ui.modeChips.appendChild(el);
+      return { key: m.key, el };
+    });
+
+    const setMode = (key) => {
+      mode = key;
+      modeButtons.forEach(({ key: k, el }) => {
+        el.classList.toggle("active", k === key);
+      });
+    };
+    setMode(mode);
+
+    // --- State ---------------------------------------------------------------
+    let running = true;
+    let lastTime = 0;
+    let angle = 0;
+    let primePulse = 0;
+    const caSize = 60;
+    let caGrid = Array.from({ length: caSize }, () => new Uint8Array(caSize).map(() => Math.floor(Math.random() * 60)));
+
+    // --- Colors --------------------------------------------------------------
+    const basePalette = {
+      red: "#ff4d6d",
+      black: "#6b7a91",
+      blue: "#6ef0ff",
+    };
+    const lerp = (a, b, t) => a + (b - a) * t;
+    const lerpColor = (c1, c2, t) => {
+      const a = parseInt(c1.slice(1), 16);
+      const b = parseInt(c2.slice(1), 16);
+      const r = Math.round(lerp((a >> 16) & 255, (b >> 16) & 255, t));
+      const g = Math.round(lerp((a >> 8) & 255, (b >> 8) & 255, t));
+      const bl = Math.round(lerp(a & 255, b & 255, t));
+      return `rgb(${r}, ${g}, ${bl})`;
+    };
+
+    // --- Utility sampling ----------------------------------------------------
+    const digit = (seq, idx) => seq[idx % 60];
+    const seqValue = (idx) => ({
+      red: digit(sequences.red, idx),
+      black: digit(sequences.black, idx),
+      blue: digit(sequences.blue, idx),
+    });
+    const weightedValue = (idx, mix) => {
+      const v = seqValue(idx);
+      return lerp(v.red, v.blue, mix) * 0.5 + v.black * 0.5;
+    };
+
+    const computeEntropy = (arr) => {
+      const counts = new Array(60).fill(0);
+      arr.forEach((v) => counts[v % 60]++);
+      const total = arr.length;
+      let h = 0;
+      counts.forEach((c) => {
+        if (!c) return;
+        const p = c / total;
+        h -= p * Math.log2(p);
+      });
+      return h;
+    };
+
+    // --- Drawing helpers -----------------------------------------------------
+    const resize = () => {
+      canvas.width = wrap.clientWidth;
+      canvas.height = wrap.clientHeight;
+    };
+    resize();
+    window.addEventListener("resize", resize);
+
+    const centerCtx = () => {
+      ctx.save();
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+    };
+
+    const restoreCtx = () => ctx.restore();
+
+    const drawBackground = () => {
+      ctx.fillStyle = "rgba(5,6,10,0.4)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    };
+
+    // --- Modes implementation ------------------------------------------------
+    const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+    const particles = Array.from({ length: 2000 }, (_, i) => i + 1);
+
+    const drawQuantum = (time, opts) => {
+      centerCtx();
+      const scale = Math.min(canvas.width, canvas.height) * 0.018;
+      particles.forEach((i) => {
+        const angle = i * goldenAngle + time * opts.rotation;
+        const r = Math.sqrt(i) * scale;
+        const x = Math.cos(angle) * r;
+        const y = Math.sin(angle) * r;
+        const lineage = i % 3 === 0 ? "red" : i % 3 === 1 ? "black" : "blue";
+        const v = digit(sequences[lineage], i);
+        const prime = primeSet.has(v);
+        const weight = prime ? 1 + opts.primePulse + opts.primeSense * 0.6 : 0.6;
+        const size = 2 + (v % 7) * 0.35;
+        ctx.fillStyle = lineage === "red" ? basePalette.red : lineage === "blue" ? basePalette.blue : basePalette.black;
+        ctx.globalAlpha = 0.45 * opts.intensity * weight;
+        ctx.beginPath();
+        ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+      restoreCtx();
+    };
+
+    const drawPrimeLattice = (time, opts) => {
+      const cols = 16;
+      const cell = Math.min(canvas.width, canvas.height) / cols;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let y = 0; y < cols; y++) {
+        for (let x = 0; x < cols; x++) {
+          const idx = y * cols + x;
+          const v = weightedValue(idx + Math.floor(time * 0.2), opts.mix);
+          const prime = primeSet.has(Math.round(v));
+          const lineage = idx % 3 === 0 ? basePalette.red : idx % 3 === 1 ? basePalette.black : basePalette.blue;
+          ctx.fillStyle = prime ? lerpColor(lineage, "#dfff8f", 0.6) : lerpColor(lineage, "#0c111c", 0.3);
+          ctx.globalAlpha = 0.7 + (prime ? 0.25 : 0);
+          ctx.fillRect(x * cell, y * cell, cell + 1, cell + 1);
+          if (prime) {
+            ctx.strokeStyle = "rgba(198,255,111,0.45)";
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x * cell + 2, y * cell + 2, cell - 4, cell - 4);
+          }
+        }
+      }
+      ctx.globalAlpha = 1;
+    };
+
+    const drawHarmonic = (time, opts) => {
+      centerCtx();
+      const maxR = Math.min(canvas.width, canvas.height) * 0.48;
+      const depth = Math.round(opts.harmonic);
+      for (let i = 1; i <= depth; i++) {
+        const r = (maxR / depth) * i;
+        const val = weightedValue(i + Math.floor(time * 0.4), opts.mix);
+        const phase = (val / 60) * Math.PI * 2 + time * opts.rotation * (isPrime(i) ? 2 : 1);
+        const radius = r + Math.sin(phase) * 14 * opts.intensity;
+        ctx.strokeStyle = i % 3 === 0 ? basePalette.red : i % 3 === 1 ? basePalette.black : basePalette.blue;
+        ctx.lineWidth = 2 + (primeSet.has(i) ? 1.5 : 0);
+        ctx.globalAlpha = 0.5 + (primeSet.has(i) ? 0.35 : 0) + opts.primePulse;
+        ctx.beginPath();
+        ctx.arc(0, 0, Math.abs(radius), 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      restoreCtx();
+    };
+
+    const caNeighbors = (grid, x, y) => {
+      const s = grid.length;
+      let sum = 0;
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          if (dx === 0 && dy === 0) continue;
+          sum += grid[(y + dy + s) % s][(x + dx + s) % s];
+        }
+      }
+      return sum;
+    };
+
+    const updateCA = (opts) => {
+      const next = Array.from({ length: caSize }, () => new Uint8Array(caSize));
+      for (let y = 0; y < caSize; y++) {
+        const rule = digit(sequences.red, y) % 8;
+        for (let x = 0; x < caSize; x++) {
+          const sum = caNeighbors(caGrid, x, y);
+          const val = caGrid[y][x];
+          const prime = primeSet.has(sum % 60);
+          const toggled = (sum + val + rule) % 60;
+          const decay = (val + 60 - Math.round(opts.primeSense * 2)) % 60;
+          next[y][x] = prime ? toggled : decay;
+        }
+      }
+      caGrid = next;
+    };
+
+    const drawCA = () => {
+      const cell = Math.min(canvas.width, canvas.height) / caSize;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let y = 0; y < caSize; y++) {
+        for (let x = 0; x < caSize; x++) {
+          const v = caGrid[y][x];
+          const prime = primeSet.has(v);
+          const lineage = v % 3 === 0 ? basePalette.red : v % 3 === 1 ? basePalette.black : basePalette.blue;
+          ctx.fillStyle = prime ? lerpColor(lineage, "#dfff8f", 0.6) : lerpColor(lineage, "#0c0f16", 0.3);
+          ctx.globalAlpha = 0.85 + (prime ? 0.1 : 0);
+          ctx.fillRect(x * cell, y * cell, cell + 0.5, cell + 0.5);
+        }
+      }
+      ctx.globalAlpha = 1;
+    };
+
+    const drawYantra = (time, opts) => {
+      centerCtx();
+      const layers = 6;
+      const radius = Math.min(canvas.width, canvas.height) * 0.36;
+      for (let i = 0; i < layers; i++) {
+        const r = radius * (1 - i / layers) * (1 + 0.03 * Math.sin(time * opts.rotation + i));
+        const angleOffset = time * opts.rotation * (i % 2 === 0 ? 1 : -1);
+        const lineage = i % 3 === 0 ? basePalette.red : i % 3 === 1 ? basePalette.black : basePalette.blue;
+        ctx.strokeStyle = lineage;
+        ctx.lineWidth = 1.5 + (primeSet.has(i + 2) ? 1 : 0);
+        ctx.globalAlpha = 0.35 + opts.intensity * 0.3;
+        ctx.beginPath();
+        for (let k = 0; k < 3; k++) {
+          const angle = angleOffset + (k * Math.PI * 2) / 3;
+          const x = Math.cos(angle) * r;
+          const y = Math.sin(angle) * r;
+          if (k === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+        for (let rays = 0; rays < 12; rays++) {
+          const a = angleOffset + (rays / 12) * Math.PI * 2;
+          const len = r * (0.4 + 0.2 * Math.sin(a * 3 + time * opts.rotation * 2));
+          ctx.beginPath();
+          ctx.moveTo(0, 0);
+          ctx.lineTo(Math.cos(a) * len, Math.sin(a) * len);
+          ctx.stroke();
+        }
+      }
+      ctx.globalAlpha = 1;
+      restoreCtx();
+    };
+
+    const drawCrypto = (time, opts) => {
+      centerCtx();
+      const radius = Math.min(canvas.width, canvas.height) * 0.38;
+      const layers = 8;
+      for (let i = 0; i < layers; i++) {
+        const r = radius * (i + 1) / layers;
+        const a = digit(sequences.red, i + Math.floor(time)) ^ digit(sequences.blue, i + 13);
+        const b = digit(sequences.black, i + 7) & 31;
+        const v = (a ^ b) % 60;
+        const hue = (v / 60) * 360;
+        const prime = primeSet.has(v);
+        ctx.strokeStyle = `hsla(${hue}, 80%, ${prime ? 65 : 45}%, ${0.35 + opts.intensity * 0.25})`;
+        ctx.lineWidth = 1 + (prime ? 1 : 0);
+        ctx.beginPath();
+        for (let k = 0; k < 12; k++) {
+          const ang = (k / 12) * Math.PI * 2 + time * opts.rotation * (prime ? 2 : 1);
+          const rad = r + (prime ? 10 : 0) * Math.sin(time * 0.6 + k);
+          const x = Math.cos(ang) * rad;
+          const y = Math.sin(ang) * rad;
+          if (k === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      restoreCtx();
+    };
+
+    const drawHepta = (time, opts) => {
+      centerCtx();
+      const rings = 7;
+      const maxR = Math.min(canvas.width, canvas.height) * 0.42;
+      for (let i = 0; i < rings; i++) {
+        const r = maxR * (1 - i / rings);
+        const invert = i % 2 === 0 ? 1 : -1;
+        ctx.strokeStyle = i % 3 === 0 ? basePalette.red : i % 3 === 1 ? basePalette.black : basePalette.blue;
+        ctx.lineWidth = 2;
+        ctx.globalAlpha = 0.35 + 0.08 * i + (primeSet.has(i) ? 0.1 : 0);
+        ctx.beginPath();
+        for (let k = 0; k < 7; k++) {
+          const ang = invert * (time * opts.rotation + (k / 7) * Math.PI * 2);
+          const x = Math.cos(ang) * r;
+          const y = Math.sin(ang) * r;
+          if (k === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      restoreCtx();
+    };
+
+    const drawTesseract = (time, opts) => {
+      centerCtx();
+      const size = Math.min(canvas.width, canvas.height) * 0.18;
+      const vertices = [];
+      for (let x = -1; x <= 1; x += 2) {
+        for (let y = -1; y <= 1; y += 2) {
+          for (let z = -1; z <= 1; z += 2) {
+            for (let w = -1; w <= 1; w += 2) {
+              vertices.push({ x, y, z, w });
+            }
+          }
+        }
+      }
+      const rot = time * opts.rotation;
+      const project = ({ x, y, z, w }) => {
+        const angleZW = rot * 0.8;
+        const newZ = z * Math.cos(angleZW) - w * Math.sin(angleZW);
+        const newW = z * Math.sin(angleZW) + w * Math.cos(angleZW);
+        const angleXY = rot * 1.2;
+        const newX = x * Math.cos(angleXY) - y * Math.sin(angleXY);
+        const newY = x * Math.sin(angleXY) + y * Math.cos(angleXY);
+        const dimScale = 1 / (2 - newW * 0.3);
+        return {
+          x: newX * dimScale * size,
+          y: newY * dimScale * size,
+          z: newZ * dimScale,
+        };
+      };
+
+      const projected = vertices.map(project);
+      const edges = [];
+      for (let i = 0; i < vertices.length; i++) {
+        for (let j = i + 1; j < vertices.length; j++) {
+          const a = vertices[i];
+          const b = vertices[j];
+          const diff = Math.abs(a.x - b.x) + Math.abs(a.y - b.y) + Math.abs(a.z - b.z) + Math.abs(a.w - b.w);
+          if (diff === 2) edges.push([i, j]);
+        }
+      }
+
+      edges.forEach(([ai, bi], idx) => {
+        const pa = projected[ai];
+        const pb = projected[bi];
+        const v = weightedValue(idx + Math.floor(time * 0.5), opts.mix);
+        const prime = primeSet.has(Math.round(v));
+        ctx.strokeStyle = prime ? lerpColor(basePalette.blue, "#dfff8f", 0.6) : basePalette.black;
+        ctx.lineWidth = 1.2 + (prime ? 0.8 : 0);
+        ctx.globalAlpha = 0.35 + opts.intensity * 0.2 + (prime ? 0.2 : 0);
+        ctx.beginPath();
+        ctx.moveTo(pa.x, pa.y);
+        ctx.lineTo(pb.x, pb.y);
+        ctx.stroke();
+      });
+      ctx.globalAlpha = 1;
+      restoreCtx();
+    };
+
+    const modeRenderers = {
+      quantum: drawQuantum,
+      primeLattice: drawPrimeLattice,
+      harmonic: drawHarmonic,
+      ca: drawCA,
+      yantra: drawYantra,
+      crypto: drawCrypto,
+      hepta: drawHepta,
+      tesseract: drawTesseract,
+    };
+
+    // --- Analysis -----------------------------------------------------------
+    const primeDensity = (arr) => arr.filter((n) => primeSet.has(n)).length / arr.length;
+    const twinPrimes = (arr) => {
+      const set = new Set(arr);
+      let count = 0;
+      set.forEach((n) => {
+        if (primeSet.has(n) && set.has(n + 2)) count++;
+      });
+      return count;
+    };
+
+    const updateAnalysis = () => {
+      const redPrime = primeDensity(sequences.red);
+      const bluePrime = primeDensity(sequences.blue);
+      const blackPrime = primeDensity(sequences.black);
+      const entropy = ((computeEntropy(sequences.red) + computeEntropy(sequences.blue) + computeEntropy(sequences.black)) / 3).toFixed(2);
+      const xorAcc = sequences.red.reduce((acc, v, i) => acc ^ (v + sequences.blue[i] + sequences.black[i]), 0) % 60;
+      const html = `
+        <div><span class="badge">Prime density</span>R ${redPrime.toFixed(2)} • B ${blackPrime.toFixed(2)} • U ${bluePrime.toFixed(2)}</div>
+        <div><span class="badge">Twin primes</span>${twinPrimes(sequences.red)} / ${twinPrimes(sequences.black)} / ${twinPrimes(sequences.blue)}</div>
+        <div><span class="badge">Entropy</span>${entropy} bits • XOR accumulator: ${xorAcc}</div>
+        <div><span class="badge">Cycle</span>Base-60 index ${(Math.floor(lastTime / 1000) % 60)} • Prime pulse ${primePulse.toFixed(2)}</div>
+      `;
+      ui.analysis.innerHTML = html;
+    };
+
+    // --- Controls -----------------------------------------------------------
+    document.getElementById("random-seq").addEventListener("click", () => {
+      sequences.red = defaultDigits();
+      sequences.black = defaultDigits();
+      sequences.blue = defaultDigits();
+      updateInputs();
+    });
+
+    document.getElementById("prime-seq").addEventListener("click", () => {
+      sequences.red = primeBiasedDigits();
+      sequences.black = primeBiasedDigits();
+      sequences.blue = primeBiasedDigits();
+      updateInputs();
+    });
+
+    [ui.red, ui.black, ui.blue].forEach((el) => {
+      el.addEventListener("change", () => {
+        syncSequences();
+      });
+    });
+
+    ui.primePulse.addEventListener("click", () => {
+      primePulse = 1.2;
+    });
+
+    ui.invert.addEventListener("click", () => {
+      [sequences.red, sequences.blue] = [sequences.blue, sequences.red];
+      updateInputs();
+    });
+
+    ui.play.addEventListener("click", () => {
+      running = !running;
+      ui.play.textContent = running ? "Pause" : "Resume";
+      if (running) requestAnimationFrame(loop);
+    });
+
+    ui.snapshot.addEventListener("click", () => {
+      const url = canvas.toDataURL("image/png");
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `prime-mandala-${mode}.png`;
+      a.click();
+    });
+
+    ui.export.addEventListener("click", () => {
+      const state = {
+        sequences,
+        mode,
+        intensity: parseFloat(ui.intensity.value),
+        rotation: parseFloat(ui.rotation.value),
+        primeSense: parseFloat(ui.primeSense.value),
+        harmonic: parseFloat(ui.harmonic.value),
+        mix: parseFloat(ui.mix.value),
+      };
+      ui.stateArea.value = JSON.stringify(state, null, 2);
+    });
+
+    ui.import.addEventListener("click", () => {
+      try {
+        const state = JSON.parse(ui.stateArea.value);
+        if (state.sequences) {
+          sequences.red = state.sequences.red || sequences.red;
+          sequences.black = state.sequences.black || sequences.black;
+          sequences.blue = state.sequences.blue || sequences.blue;
+          updateInputs();
+        }
+        if (state.mode) setMode(state.mode);
+        if (state.intensity) ui.intensity.value = state.intensity;
+        if (state.rotation) ui.rotation.value = state.rotation;
+        if (state.primeSense) ui.primeSense.value = state.primeSense;
+        if (state.harmonic) ui.harmonic.value = state.harmonic;
+        if (state.mix) ui.mix.value = state.mix;
+      } catch (err) {
+        alert("Invalid JSON state");
+      }
+    });
+
+    const modeKeyMap = modes.reduce((acc, m, i) => ({ ...acc, [i + 1]: m.key }), {});
+    window.addEventListener("keydown", (e) => {
+      if (e.code === "Space") {
+        e.preventDefault();
+        ui.play.click();
+      }
+      if (e.key >= "1" && e.key <= "8") setMode(modeKeyMap[e.key]);
+      if (e.key.toLowerCase() === "p") primePulse = 1.2;
+      if (e.key.toLowerCase() === "i") ui.invert.click();
+    });
+
+    // --- Loop ---------------------------------------------------------------
+    const loop = (ts) => {
+      if (!running) return;
+      const delta = ts - lastTime;
+      if (delta < parseInt(ui.speed.value, 10)) {
+        requestAnimationFrame(loop);
+        return;
+      }
+      lastTime = ts;
+      primePulse = Math.max(0, primePulse - 0.05);
+      const opts = {
+        intensity: parseFloat(ui.intensity.value),
+        rotation: parseFloat(ui.rotation.value),
+        primeSense: parseFloat(ui.primeSense.value),
+        harmonic: parseFloat(ui.harmonic.value),
+        mix: parseFloat(ui.mix.value),
+        primePulse,
+      };
+      drawBackground();
+      if (mode === "ca") updateCA(opts);
+      const renderer = modeRenderers[mode];
+      if (renderer) renderer(ts / 1000, opts);
+      updateAnalysis();
+      requestAnimationFrame(loop);
+    };
+
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

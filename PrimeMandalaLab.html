@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prime Mandala Lab</title>
+  <style>
+    :root {
+      --bg: #0a0c10;
+      --panel: #141820;
+      --accent: #c6ff6f;
+      --text: #dfe8f7;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Inter", system-ui, -apple-system, sans-serif;
+      background: radial-gradient(circle at 20% 20%, #112 0%, #06080f 40%, #05060a 100%);
+      color: var(--text);
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #sidebar {
+      background: var(--panel);
+      box-shadow: 0 0 24px rgba(0, 0, 0, 0.6);
+      padding: 20px;
+      overflow-y: auto;
+      border-right: 1px solid #1f2533;
+    }
+
+    h1 {
+      margin-top: 0;
+      letter-spacing: 0.04em;
+      font-weight: 700;
+      font-size: 22px;
+    }
+
+    h2 {
+      font-size: 14px;
+      margin: 18px 0 8px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .control-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 8px;
+      align-items: center;
+    }
+
+    label {
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      color: #bcd0f0;
+    }
+
+    input[type="number"],
+    input[type="text"],
+    input[type="range"],
+    textarea,
+    select,
+    button {
+      width: 100%;
+      box-sizing: border-box;
+      background: #0f1218;
+      color: var(--text);
+      border: 1px solid #1f2431;
+      border-radius: 6px;
+      padding: 8px;
+      font-size: 12px;
+      outline: none;
+    }
+
+    input[type="range"] {
+      padding: 0;
+    }
+
+    button {
+      cursor: pointer;
+      background: linear-gradient(135deg, #0f161f, #131a27);
+      transition: border-color 0.2s, transform 0.2s;
+    }
+
+    button:hover {
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+      font-family: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+    }
+
+    #canvas-wrap {
+      position: relative;
+      background: #03050a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: radial-gradient(circle at 50% 45%, rgba(40, 60, 90, 0.2), rgba(2, 4, 8, 0.9));
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .row button {
+      flex: 1;
+    }
+
+    small {
+      color: #94a3b8;
+      font-size: 11px;
+      line-height: 1.4;
+      display: block;
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+  <aside id="sidebar">
+    <h1>Prime Mandala Lab</h1>
+    <p>Explore base-60 cellular automata infused with primes and sacred geometry.</p>
+
+    <h2>Simulation</h2>
+    <div class="row">
+      <button id="toggle">Play</button>
+      <button id="step">Step</button>
+    </div>
+    <div class="row">
+      <button id="randomize">Random Seed</button>
+      <button id="single">Single Spark</button>
+    </div>
+    <div class="row">
+      <button id="prime-ring">Prime Ring</button>
+      <button id="clear">Clear</button>
+    </div>
+
+    <div class="control-group">
+      <label for="size">Grid (N×N)</label>
+      <input id="size" type="number" min="20" max="160" value="60" />
+      <label for="speed">Speed (ms/step)</label>
+      <input id="speed" type="range" min="10" max="400" value="70" />
+    </div>
+
+    <div class="control-group">
+      <label for="cycle">Cycle Length</label>
+      <input id="cycle" type="number" min="6" max="240" value="60" />
+      <label for="prime-sense">Prime Sensitivity</label>
+      <input id="prime-sense" type="range" min="1" max="8" step="1" value="3" />
+    </div>
+
+    <div class="control-group">
+      <label for="decay">Decay Amount</label>
+      <input id="decay" type="number" min="0" max="59" value="1" />
+      <label for="palette">Palette</label>
+      <select id="palette">
+        <option value="aurora">Aurora</option>
+        <option value="sunset">Sunset</option>
+        <option value="neon">Neon</option>
+        <option value="ink">Ink</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <label for="rule">Rule Preset</label>
+      <select id="rule">
+        <option value="primeBloom">Prime Bloom</option>
+        <option value="rotatingPrimes">Rotating Primes</option>
+        <option value="modLattice">Mod Lattice</option>
+        <option value="starSpiral">Prime Star Spiral</option>
+      </select>
+      <label for="viz">Visualization</label>
+      <select id="viz">
+        <option value="grid">Grid Weave</option>
+        <option value="orbital">Orbital Glow</option>
+        <option value="mandala">Mandala Bloom</option>
+      </select>
+    </div>
+
+    <h2>Presets</h2>
+    <div class="row">
+      <button id="save-config">Save JSON</button>
+      <button id="load-config">Load JSON</button>
+    </div>
+    <textarea id="config-area" placeholder="Copy / edit preset JSON here"></textarea>
+    <small>Presets capture grid size, palette, rule choice, and parameters. Paste JSON and click Load to apply live.</small>
+
+    <h2>Prompt Template</h2>
+    <textarea aria-label="rule prompt template" readonly>
+I have a 2D cellular automaton with:
+
+Grid size: [e.g. 60×60]
+States: integers mod 60
+Prime numbers within 1–59 treated as ‘special’ or ‘lit’ states.
+
+Please design a new rule preset that produces [describe desired vibe: e.g. ‘slowly rotating mandala’, ‘exploding starburst’, ‘breathing lattice’] using:
+
+Prime-sensitive neighbor rules,
+Base-60 cycles,
+Optional radial or angular structures (rings, spirals, star polygons).
+
+Output:
+
+A clear, step-by-step definition of the update rule.
+Parameters (e.g. thresholds, weights, number of steps per cycle).
+A suggested color mapping emphasizing primes.
+A short explanation of the emergent visual behavior and how it ties to the number theory.
+    </textarea>
+    <small>Use the template above to sketch new rule ideas, then translate them into a new entry in <code>rulePresets</code>.</small>
+
+    <h2>Notes</h2>
+    <small>
+      • States cycle mod N (default 60).<br />
+      • Prime emphasis highlights sacred geometry pulses.<br />
+      • Rules and visualization modes are pluggable—extend the<br />
+      <code>rulePresets</code> or <code>visualizations</code> maps in the script.
+    </small>
+  </aside>
+
+  <section id="canvas-wrap">
+    <canvas id="view" width="1200" height="900" aria-label="Prime Mandala Lab canvas"></canvas>
+  </section>
+
+  <script>
+    // --- Utilities -----------------------------------------------------------
+    const isPrime = (num) => {
+      if (num < 2) return false;
+      for (let i = 2; i * i <= num; i++) {
+        if (num % i === 0) return false;
+      }
+      return true;
+    };
+
+    const buildPrimeSet = (max) => {
+      const set = new Set();
+      for (let i = 2; i <= max; i++) if (isPrime(i)) set.add(i);
+      return set;
+    };
+
+    const tau = Math.PI * 2;
+
+    const palettes = {
+      aurora: [
+        "#0c1c35",
+        "#14294c",
+        "#1b3664",
+        "#25467c",
+        "#2f5795",
+        "#3a69ae",
+        "#467bc7",
+        "#5a90d7",
+        "#70a6e6",
+        "#8abcf4",
+        "#a6d2ff",
+        "#c8fff9",
+      ],
+      sunset: [
+        "#1a0c16",
+        "#2b0f1f",
+        "#401329",
+        "#591734",
+        "#741c3f",
+        "#8f224b",
+        "#aa2957",
+        "#c43363",
+        "#de3d6f",
+        "#f04f7c",
+        "#ff738f",
+        "#ffc2c2",
+      ],
+      neon: [
+        "#030712",
+        "#0a0f1f",
+        "#0f172a",
+        "#152038",
+        "#1b2947",
+        "#223255",
+        "#2a3b64",
+        "#334472",
+        "#3d4d81",
+        "#48668e",
+        "#56b6c2",
+        "#9af5ff",
+      ],
+      ink: [
+        "#050608",
+        "#0a0c0f",
+        "#0f1419",
+        "#141c23",
+        "#18242c",
+        "#1d2d36",
+        "#223540",
+        "#283e4a",
+        "#2e4855",
+        "#355261",
+        "#75a5b5",
+        "#dfeff4",
+      ],
+    };
+
+    const lerpColor = (palette, t) => {
+      const n = palette.length - 1;
+      const x = Math.min(Math.max(t, 0), 1) * n;
+      const i = Math.floor(x);
+      const f = x - i;
+      const a = palette[i];
+      const b = palette[Math.min(i + 1, n)];
+      const pa = parseInt(a.slice(1), 16);
+      const pb = parseInt(b.slice(1), 16);
+      const r = ((pa >> 16) & 255) + (((pb >> 16) & 255) - ((pa >> 16) & 255)) * f;
+      const g = ((pa >> 8) & 255) + (((pb >> 8) & 255) - ((pa >> 8) & 255)) * f;
+      const bl = (pa & 255) + ((pb & 255) - (pa & 255)) * f;
+      return `rgb(${r.toFixed(0)}, ${g.toFixed(0)}, ${bl.toFixed(0)})`;
+    };
+
+    // --- Core Automaton ------------------------------------------------------
+    class Automaton {
+      constructor(size, cycleLength = 60) {
+        this.size = size;
+        this.cycleLength = cycleLength;
+        this.grid = this.makeGrid(0);
+        this.primes = buildPrimeSet(cycleLength - 1);
+      }
+
+      makeGrid(fill = 0) {
+        return Array.from({ length: this.size }, () =>
+          new Uint16Array(this.size).fill(fill)
+        );
+      }
+
+      resize(size, cycleLength) {
+        this.size = size;
+        this.cycleLength = cycleLength;
+        this.primes = buildPrimeSet(cycleLength - 1);
+        this.grid = this.makeGrid(0);
+      }
+
+      randomize() {
+        for (let y = 0; y < this.size; y++) {
+          for (let x = 0; x < this.size; x++) {
+            this.grid[y][x] = Math.floor(Math.random() * this.cycleLength);
+          }
+        }
+      }
+
+      clear() {
+        this.grid = this.makeGrid(0);
+      }
+
+      seedSingle() {
+        this.clear();
+        const c = Math.floor(this.size / 2);
+        this.grid[c][c] = 1;
+      }
+
+      seedPrimeRing(radius = 3) {
+        this.clear();
+        const c = Math.floor(this.size / 2);
+        for (let y = -radius; y <= radius; y++) {
+          for (let x = -radius; x <= radius; x++) {
+            const dist = Math.round(Math.hypot(x, y));
+            if (isPrime(dist)) {
+              const px = (c + x + this.size) % this.size;
+              const py = (c + y + this.size) % this.size;
+              this.grid[py][px] = dist % this.cycleLength;
+            }
+          }
+        }
+      }
+
+      neighbors(x, y, radius = 1) {
+        const vals = [];
+        for (let dy = -radius; dy <= radius; dy++) {
+          for (let dx = -radius; dx <= radius; dx++) {
+            if (dx === 0 && dy === 0) continue;
+            const nx = (x + dx + this.size) % this.size;
+            const ny = (y + dy + this.size) % this.size;
+            vals.push(this.grid[ny][nx]);
+          }
+        }
+        return vals;
+      }
+
+      step(ruleFn, params) {
+        const next = this.makeGrid(0);
+        const radius = params.radius || 1;
+        for (let y = 0; y < this.size; y++) {
+          for (let x = 0; x < this.size; x++) {
+            const neigh = this.neighbors(x, y, radius);
+            next[y][x] = ruleFn({
+              value: this.grid[y][x],
+              x,
+              y,
+              neighbors: neigh,
+              params,
+              primes: this.primes,
+              cycleLength: this.cycleLength,
+            });
+          }
+        }
+        this.grid = next;
+      }
+    }
+
+    // --- Rule presets (pluggable) -------------------------------------------
+    const rulePresets = {
+      primeBloom: {
+        label: "Prime Bloom",
+        params: { radius: 1 },
+        fn: ({ value, neighbors, params, primes, cycleLength }) => {
+          const primeCount = neighbors.filter((n) => primes.has(n % cycleLength)).length;
+          const sum = neighbors.reduce((a, b) => a + b, 0);
+          const sumPrime = primes.has(sum % cycleLength);
+          const activated = primeCount >= params.primeSensitivity || sumPrime;
+          if (activated) {
+            return (value + primeCount + params.decay) % cycleLength;
+          }
+          return (value + cycleLength - params.decay) % cycleLength;
+        },
+      },
+      rotatingPrimes: {
+        label: "Rotating Primes",
+        params: { radius: 2 },
+        fn: ({ value, x, y, params, primes, cycleLength }) => {
+          const { size } = params;
+          const center = (size - 1) / 2;
+          const dx = x - center;
+          const dy = y - center;
+          const r = Math.hypot(dx, dy);
+          const angle = Math.atan2(dy, dx);
+          const spiralStep = (Math.round(r) % 2 === 0 ? 1 : -1) * params.rotSpeed;
+          const primeInfluence = primes.has(Math.round(r)) ? params.primeSensitivity : 0;
+          const drift = Math.round(((angle / tau + 1) % 1) * params.cycleLength);
+          const next = value + spiralStep + primeInfluence + (drift % params.decayBias);
+          return ((next % cycleLength) + cycleLength) % cycleLength;
+        },
+      },
+      modLattice: {
+        label: "Mod Lattice",
+        params: { radius: 1 },
+        fn: ({ value, neighbors, params, primes, cycleLength }) => {
+          const rings = params.rings || [1, 2, 3];
+          let pulse = 0;
+          rings.forEach((r, i) => {
+            if (!isPrime(r)) return;
+            const idx = (i + 1) * params.primeSensitivity;
+            pulse += idx;
+          });
+          const neighborSum = neighbors.reduce((a, b) => a + b, 0) % cycleLength;
+          const resonance = primes.has(neighborSum) ? params.decayBias : 0;
+          return (value + pulse + resonance + neighborSum) % cycleLength;
+        },
+      },
+      starSpiral: {
+        label: "Prime Star Spiral",
+        params: { radius: 2, ringPush: 4, resonance: 6, angleDiv: 5 },
+        fn: ({ value, x, y, neighbors, params, primes, cycleLength }) => {
+          const center = (params.size - 1) / 2;
+          const dx = x - center;
+          const dy = y - center;
+          const r = Math.hypot(dx, dy);
+          const angle = (Math.atan2(dy, dx) + tau) % tau;
+
+          const primeNeighbors = neighbors.filter((n) => primes.has(n % cycleLength)).length;
+          const neighborSum = neighbors.reduce((a, b) => a + b, 0) % cycleLength;
+          const sumPrime = primes.has(neighborSum);
+
+          const ringWave = isPrime(Math.round(r)) ? params.ringPush : 0;
+          const angularStep = Math.round((angle / tau) * params.cycleLength);
+          const starGate = Math.round(r) % params.angleDiv === 0 ? params.primeSensitivity : 0;
+          const base = value + primeNeighbors * params.primeSensitivity + ringWave + starGate;
+          const resonance = sumPrime ? params.resonance : params.decay;
+          const next = base + angularStep + resonance - params.decay;
+          return ((next % cycleLength) + cycleLength) % cycleLength;
+        },
+      },
+    };
+
+    // --- Visualization modes (pluggable) -----------------------------------
+    const visualizations = {
+      grid: {
+        label: "Grid Weave",
+        draw: (ctx, grid, opts) => {
+          const { size } = opts;
+          const cell = Math.min(ctx.canvas.width, ctx.canvas.height) / size;
+          ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+          for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+              const v = grid[y][x];
+              const t = v / opts.cycleLength;
+              const color = lerpColor(opts.palette, t);
+              const prime = opts.primes.has(v % opts.cycleLength);
+              ctx.fillStyle = color;
+              ctx.globalAlpha = prime ? 0.95 : 0.75;
+              ctx.fillRect(x * cell, y * cell, cell + 0.5, cell + 0.5);
+              if (prime) {
+                ctx.strokeStyle = "rgba(198, 255, 111, 0.4)";
+                ctx.lineWidth = 0.6;
+                ctx.strokeRect(x * cell + 0.2, y * cell + 0.2, cell - 0.4, cell - 0.4);
+              }
+            }
+          }
+          ctx.globalAlpha = 1;
+        },
+      },
+      orbital: {
+        label: "Orbital Glow",
+        draw: (ctx, grid, opts) => {
+          const { size } = opts;
+          const w = ctx.canvas.width;
+          const h = ctx.canvas.height;
+          const cell = Math.min(w, h) / size;
+          ctx.clearRect(0, 0, w, h);
+          ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
+          ctx.fillRect(0, 0, w, h);
+          for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+              const v = grid[y][x];
+              const t = v / opts.cycleLength;
+              const color = lerpColor(opts.palette, t);
+              const prime = opts.primes.has(v % opts.cycleLength);
+              const cx = x * cell + cell / 2;
+              const cy = y * cell + cell / 2;
+              const r = (cell / 2) * (prime ? 0.9 : 0.55) + (v % 5) * 0.4;
+              const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+              grad.addColorStop(0, prime ? "rgba(198,255,111,0.8)" : color);
+              grad.addColorStop(1, "rgba(0,0,0,0)");
+              ctx.fillStyle = grad;
+              ctx.beginPath();
+              ctx.arc(cx, cy, r, 0, tau);
+              ctx.fill();
+            }
+          }
+        },
+      },
+      mandala: {
+        label: "Mandala Bloom",
+        draw: (ctx, grid, opts) => {
+          const { size } = opts;
+          const w = ctx.canvas.width;
+          const h = ctx.canvas.height;
+          ctx.clearRect(0, 0, w, h);
+          ctx.save();
+          ctx.translate(w / 2, h / 2);
+          const maxR = Math.min(w, h) * 0.45;
+          const stepR = maxR / size;
+          for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+              const v = grid[y][x];
+              const t = v / opts.cycleLength;
+              const color = lerpColor(opts.palette, t);
+              const prime = opts.primes.has(v % opts.cycleLength);
+              const angle = ((x / size + y / size) % 1) * tau;
+              const radius = (y + 1) * stepR;
+              const px = Math.cos(angle) * radius;
+              const py = Math.sin(angle) * radius;
+              ctx.save();
+              ctx.translate(px, py);
+              ctx.rotate(angle + y * 0.02);
+              ctx.fillStyle = color;
+              ctx.globalAlpha = prime ? 0.9 : 0.6;
+              const len = prime ? stepR * 0.9 : stepR * 0.55;
+              ctx.beginPath();
+              ctx.moveTo(0, -len);
+              ctx.lineTo(len * 0.8, 0);
+              ctx.lineTo(0, len);
+              ctx.lineTo(-len * 0.8, 0);
+              ctx.closePath();
+              ctx.fill();
+              ctx.restore();
+            }
+          }
+          ctx.restore();
+        },
+      },
+    };
+
+    // --- App wiring ---------------------------------------------------------
+    const canvas = document.getElementById("view");
+    const ctx = canvas.getContext("2d");
+    const ui = {
+      toggle: document.getElementById("toggle"),
+      step: document.getElementById("step"),
+      randomize: document.getElementById("randomize"),
+      single: document.getElementById("single"),
+      primeRing: document.getElementById("prime-ring"),
+      clear: document.getElementById("clear"),
+      size: document.getElementById("size"),
+      speed: document.getElementById("speed"),
+      cycle: document.getElementById("cycle"),
+      primeSense: document.getElementById("prime-sense"),
+      decay: document.getElementById("decay"),
+      palette: document.getElementById("palette"),
+      rule: document.getElementById("rule"),
+      viz: document.getElementById("viz"),
+      saveConfig: document.getElementById("save-config"),
+      loadConfig: document.getElementById("load-config"),
+      configArea: document.getElementById("config-area"),
+    };
+
+    let cycleLength = parseInt(ui.cycle.value, 10);
+    let automaton = new Automaton(parseInt(ui.size.value, 10), cycleLength);
+    automaton.randomize();
+
+    let playing = false;
+    let timer = null;
+
+    const getParams = () => ({
+      size: automaton.size,
+      cycleLength,
+      primeSensitivity: parseInt(ui.primeSense.value, 10),
+      decay: parseInt(ui.decay.value, 10),
+      decayBias: Math.max(1, parseInt(ui.decay.value, 10)),
+      rotSpeed: 1 + parseInt(ui.primeSense.value, 10) * 0.2,
+      radius: rulePresets[ui.rule.value].params.radius,
+    });
+
+    const paletteFor = () => palettes[ui.palette.value];
+
+    const render = () => {
+      const mode = visualizations[ui.viz.value];
+      mode.draw(ctx, automaton.grid, {
+        size: automaton.size,
+        cycleLength,
+        palette: paletteFor(),
+        primes: automaton.primes,
+      });
+    };
+
+    const stepSimulation = () => {
+      const preset = rulePresets[ui.rule.value];
+      const params = { ...preset.params, ...getParams() };
+      automaton.step(preset.fn, params);
+      render();
+    };
+
+    const play = () => {
+      playing = true;
+      ui.toggle.textContent = "Pause";
+      const loop = () => {
+        stepSimulation();
+        timer = setTimeout(loop, parseInt(ui.speed.value, 10));
+      };
+      loop();
+    };
+
+    const pause = () => {
+      playing = false;
+      ui.toggle.textContent = "Play";
+      clearTimeout(timer);
+    };
+
+    const togglePlay = () => (playing ? pause() : play());
+
+    const resizeGrid = () => {
+      const size = parseInt(ui.size.value, 10);
+      const newCycle = parseInt(ui.cycle.value, 10);
+      cycleLength = newCycle;
+      automaton.resize(size, cycleLength);
+      automaton.randomize();
+      render();
+    };
+
+    // --- Event bindings -----------------------------------------------------
+    ui.toggle.addEventListener("click", togglePlay);
+    ui.step.addEventListener("click", () => {
+      pause();
+      stepSimulation();
+    });
+    ui.randomize.addEventListener("click", () => {
+      automaton.randomize();
+      render();
+    });
+    ui.single.addEventListener("click", () => {
+      automaton.seedSingle();
+      render();
+    });
+    ui.primeRing.addEventListener("click", () => {
+      automaton.seedPrimeRing(5);
+      render();
+    });
+    ui.clear.addEventListener("click", () => {
+      automaton.clear();
+      render();
+    });
+    ui.size.addEventListener("change", resizeGrid);
+    ui.cycle.addEventListener("change", resizeGrid);
+    ui.palette.addEventListener("change", render);
+    ui.viz.addEventListener("change", render);
+
+    ui.rule.addEventListener("change", () => {
+      render();
+    });
+
+    ui.saveConfig.addEventListener("click", () => {
+      const preset = {
+        size: automaton.size,
+        cycleLength,
+        palette: ui.palette.value,
+        primeSensitivity: parseInt(ui.primeSense.value, 10),
+        decay: parseInt(ui.decay.value, 10),
+        rule: ui.rule.value,
+        viz: ui.viz.value,
+      };
+      ui.configArea.value = JSON.stringify(preset, null, 2);
+    });
+
+    ui.loadConfig.addEventListener("click", () => {
+      try {
+        const cfg = JSON.parse(ui.configArea.value);
+        if (cfg.size) ui.size.value = cfg.size;
+        if (cfg.cycleLength) ui.cycle.value = cfg.cycleLength;
+        if (cfg.palette) ui.palette.value = cfg.palette;
+        if (cfg.primeSensitivity) ui.primeSense.value = cfg.primeSensitivity;
+        if (cfg.decay) ui.decay.value = cfg.decay;
+        if (cfg.rule) ui.rule.value = cfg.rule;
+        if (cfg.viz) ui.viz.value = cfg.viz;
+        resizeGrid();
+      } catch (err) {
+        alert("Invalid JSON preset.");
+      }
+    });
+
+    window.addEventListener("resize", () => {
+      const wrap = document.getElementById("canvas-wrap");
+      canvas.width = wrap.clientWidth;
+      canvas.height = wrap.clientHeight;
+      render();
+    });
+
+    // Initial sizing & render
+    const wrap = document.getElementById("canvas-wrap");
+    canvas.width = wrap.clientWidth;
+    canvas.height = wrap.clientHeight;
+    render();
+  </script>
+</body>
+</html>

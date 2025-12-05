@@ -1,0 +1,1364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Moss60 Cathedral - Ultimate Observatory</title>
+  <style>
+    :root {
+      --midnight: #050514;
+      --deep-blue: #0a0f24;
+      --sun-gold: #ffd700;
+      --moss-red: #ff3455;
+      --moss-blue: #44aaff;
+      --moss-black: #1a1a1a;
+      --void: #000000;
+      --text: #e4e8ff;
+      --panel-glow: rgba(27, 206, 255, 0.12);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: radial-gradient(circle at 30% 20%, #0a1428 0%, #050514 50%, #000000 100%);
+      color: var(--text);
+      overflow: hidden;
+      height: 100vh;
+    }
+
+    #app {
+      display: grid;
+      grid-template-columns: 300px 1fr 280px;
+      height: 100vh;
+      gap: 0;
+    }
+
+    .panel {
+      background: linear-gradient(135deg, rgba(10, 15, 36, 0.95), rgba(5, 5, 20, 0.98));
+      backdrop-filter: blur(12px);
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+      overflow-y: auto;
+      padding: 12px;
+    }
+
+    .panel::-webkit-scrollbar { width: 6px; }
+    .panel::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.3); }
+    .panel::-webkit-scrollbar-thumb { background: rgba(255, 215, 0, 0.4); border-radius: 3px; }
+
+    #main-canvas-area {
+      position: relative;
+      background: radial-gradient(circle at center, rgba(10, 20, 40, 0.3), rgba(0, 0, 0, 0.9));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    canvas {
+      max-width: 100%;
+      max-height: 100%;
+      display: block;
+    }
+
+    h1 {
+      font-size: 15px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, var(--sun-gold), var(--moss-blue));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-weight: 700;
+    }
+
+    h2 {
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin: 12px 0 5px;
+      color: var(--sun-gold);
+      opacity: 0.9;
+      border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+      padding-bottom: 3px;
+    }
+
+    .mode-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 3px;
+      margin-bottom: 8px;
+    }
+
+    .mode-grid button {
+      padding: 4px 4px;
+      font-size: 8px;
+    }
+
+    button {
+      padding: 5px 8px;
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(68, 170, 255, 0.15));
+      border: 1px solid rgba(255, 215, 0, 0.4);
+      border-radius: 5px;
+      color: var(--text);
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-weight: 600;
+    }
+
+    button:hover {
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.3), rgba(68, 170, 255, 0.3));
+      box-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+      transform: translateY(-1px);
+    }
+
+    button.active {
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.5), rgba(68, 170, 255, 0.5));
+      box-shadow: 0 0 14px rgba(255, 215, 0, 0.7);
+      border-color: var(--sun-gold);
+    }
+
+    .control-group {
+      margin-bottom: 8px;
+    }
+
+    label {
+      font-size: 9px;
+      letter-spacing: 0.05em;
+      color: rgba(228, 232, 255, 0.85);
+      display: block;
+      margin-bottom: 2px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 11px;
+      height: 11px;
+      background: var(--sun-gold);
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 6px rgba(255, 215, 0, 0.6);
+    }
+
+    input[type="color"] {
+      width: 100%;
+      height: 28px;
+      border: 1px solid rgba(255, 215, 0, 0.3);
+      border-radius: 4px;
+      cursor: pointer;
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    select {
+      width: 100%;
+      padding: 4px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 215, 0, 0.3);
+      border-radius: 4px;
+      color: var(--text);
+      font-size: 9px;
+      outline: none;
+    }
+
+    .stat-display {
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 215, 0, 0.2);
+      border-radius: 4px;
+      padding: 5px;
+      margin-bottom: 5px;
+      font-size: 9px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 2px;
+    }
+
+    .stat-label {
+      color: rgba(255, 215, 0, 0.8);
+    }
+
+    .stat-value {
+      color: var(--moss-blue);
+      font-weight: 600;
+    }
+
+    #overlay-display {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(5, 5, 20, 0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 215, 0, 0.3);
+      border-radius: 5px;
+      padding: 6px 10px;
+      font-size: 9px;
+      pointer-events: none;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .mode-indicator {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--sun-gold);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 3px;
+    }
+
+    .control-row {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 5px;
+    }
+
+    .control-row button {
+      flex: 1;
+      font-size: 8px;
+    }
+
+    .color-preview {
+      width: 100%;
+      height: 20px;
+      border-radius: 3px;
+      margin-top: 3px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    @media (max-width: 1200px) {
+      #app {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+      }
+      .panel { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- LEFT PANEL: MODE SELECTOR & VISUALS -->
+    <div class="panel" id="left-panel">
+      <h1>Ultimate Observatory</h1>
+      <p style="font-size: 8px; opacity: 0.7; margin-bottom: 10px;">
+        33 modes • Shape morphing • Connections • Custom colors
+      </p>
+
+      <h2>Core (8)</h2>
+      <div class="mode-grid">
+        <button class="mode-btn active" data-mode="quantum">Quantum</button>
+        <button class="mode-btn" data-mode="prime">Prime</button>
+        <button class="mode-btn" data-mode="harmonic">Harmonic</button>
+        <button class="mode-btn" data-mode="cellular">CA</button>
+        <button class="mode-btn" data-mode="yantra">Yantra</button>
+        <button class="mode-btn" data-mode="cryptic">Cryptic</button>
+        <button class="mode-btn" data-mode="hepta">Hepta</button>
+        <button class="mode-btn" data-mode="tesseract">4D</button>
+      </div>
+
+      <h2>Sacred (6)</h2>
+      <div class="mode-grid">
+        <button class="mode-btn" data-mode="phyllo">Phyllo</button>
+        <button class="mode-btn" data-mode="hexgrid">Hex</button>
+        <button class="mode-btn" data-mode="loshu">LoShu</button>
+        <button class="mode-btn" data-mode="metatron">Metatrn</button>
+        <button class="mode-btn" data-mode="tiles">Tiles</button>
+        <button class="mode-btn" data-mode="shapes">Shapes</button>
+      </div>
+
+      <h2>Bases (6)</h2>
+      <div class="mode-grid">
+        <button class="mode-btn" data-mode="binary">Bin</button>
+        <button class="mode-btn" data-mode="ternary">Tern</button>
+        <button class="mode-btn" data-mode="quinary">Quin</button>
+        <button class="mode-btn" data-mode="octal">Oct</button>
+        <button class="mode-btn" data-mode="decimal">Dec</button>
+        <button class="mode-btn" data-mode="duodec">Duo</button>
+      </div>
+
+      <h2>Combos (8)</h2>
+      <div class="mode-grid">
+        <button class="mode-btn" data-mode="quantum-prime">Q+P</button>
+        <button class="mode-btn" data-mode="harmonic-yantra">H+Y</button>
+        <button class="mode-btn" data-mode="phyllo-hex">Ph+Hx</button>
+        <button class="mode-btn" data-mode="binary-ternary">Bi+Tr</button>
+        <button class="mode-btn" data-mode="prime-tesseract">P+4D</button>
+        <button class="mode-btn" data-mode="cryptic-harmonic">Cr+Ha</button>
+        <button class="mode-btn" data-mode="metatron-hepta">Mt+Hp</button>
+        <button class="mode-btn" data-mode="all-layers">ALL</button>
+      </div>
+
+      <h2>Enhanced (5)</h2>
+      <div class="mode-grid">
+        <button class="mode-btn" data-mode="trails">Trails</button>
+        <button class="mode-btn" data-mode="connected">Connect</button>
+        <button class="mode-btn" data-mode="galaxy">Galaxy</button>
+        <button class="mode-btn" data-mode="pulse">Pulse</button>
+        <button class="mode-btn" data-mode="mandala">Mandala</button>
+      </div>
+
+      <h2>Shape System</h2>
+      <div class="control-group">
+        <label>Particle Shape</label>
+        <select id="shape-select">
+          <option value="circle">Circle</option>
+          <option value="square">Square</option>
+          <option value="diamond">Diamond</option>
+          <option value="hexagon">Hexagon</option>
+          <option value="star">Star</option>
+          <option value="triangle">Triangle</option>
+          <option value="cross">Cross</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Shape Size: <span id="shape-size-val">1.0</span></label>
+        <input type="range" id="shape-size" min="0.3" max="3" step="0.1" value="1.0">
+      </div>
+
+      <h2>Connections</h2>
+      <div class="control-group">
+        <label>Connection Type</label>
+        <select id="connection-type">
+          <option value="none">None</option>
+          <option value="primes">Primes Only</option>
+          <option value="lineage">Same Lineage</option>
+          <option value="sequential">Sequential</option>
+          <option value="sectors">Lukas Sectors</option>
+          <option value="all">Connect All</option>
+        </select>
+      </div>
+
+      <div class="control-group">
+        <label>Line Width: <span id="line-width-val">1.0</span></label>
+        <input type="range" id="line-width" min="0.1" max="5" step="0.1" value="1.0">
+      </div>
+
+      <h2>Core Params</h2>
+      <div class="control-group">
+        <label>Intensity: <span id="intensity-val">0.75</span></label>
+        <input type="range" id="intensity" min="0" max="1" step="0.01" value="0.75">
+      </div>
+
+      <div class="control-group">
+        <label>Speed: <span id="rotation-val">1.0</span></label>
+        <input type="range" id="rotation" min="0.1" max="5" step="0.1" value="1.0">
+      </div>
+
+      <div class="control-group">
+        <label>Complexity: <span id="layers-val">5</span></label>
+        <input type="range" id="layers" min="1" max="12" step="1" value="5">
+      </div>
+
+      <h2>Actions</h2>
+      <div class="control-row">
+        <button id="freeze-btn">Freeze</button>
+        <button id="reset-btn">Reset</button>
+      </div>
+    </div>
+
+    <!-- MAIN CANVAS -->
+    <div id="main-canvas-area">
+      <canvas id="observatory" width="1400" height="1000"></canvas>
+      <div id="overlay-display">
+        <div class="mode-indicator" id="mode-name">QUANTUM FIELD</div>
+        <div id="overlay-stats"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL: COLORS & ANALYSIS -->
+    <div class="panel" id="right-panel">
+      <h1>Colors & Analysis</h1>
+
+      <h2>Lineage Colors</h2>
+      <div class="control-group">
+        <label>Red Lineage</label>
+        <input type="color" id="red-color" value="#ff3455">
+        <div class="color-preview" style="background: #ff3455;" id="red-preview"></div>
+      </div>
+
+      <div class="control-group">
+        <label>Black Lineage</label>
+        <input type="color" id="black-color" value="#1a1a1a">
+        <div class="color-preview" style="background: #1a1a1a;" id="black-preview"></div>
+      </div>
+
+      <div class="control-group">
+        <label>Blue Lineage</label>
+        <input type="color" id="blue-color" value="#44aaff">
+        <div class="color-preview" style="background: #44aaff;" id="blue-preview"></div>
+      </div>
+
+      <h2>Color Presets</h2>
+      <div class="control-row">
+        <button id="preset-moss">Moss</button>
+        <button id="preset-neon">Neon</button>
+        <button id="preset-fire">Fire</button>
+      </div>
+      <div class="control-row">
+        <button id="preset-ocean">Ocean</button>
+        <button id="preset-forest">Forest</button>
+        <button id="preset-sunset">Sunset</button>
+      </div>
+
+      <h2>Lineage Weights</h2>
+      <div class="control-group">
+        <label>Red: <span id="red-weight-val">1.0</span></label>
+        <input type="range" id="red-weight" min="0" max="2" step="0.1" value="1.0">
+      </div>
+
+      <div class="control-group">
+        <label>Black: <span id="black-weight-val">1.0</span></label>
+        <input type="range" id="black-weight" min="0" max="2" step="0.1" value="1.0">
+      </div>
+
+      <div class="control-group">
+        <label>Blue: <span id="blue-weight-val">1.0</span></label>
+        <input type="range" id="blue-weight" min="0" max="2" step="0.1" value="1.0">
+      </div>
+
+      <h2>System</h2>
+      <div class="stat-display">
+        <div class="stat-row">
+          <span class="stat-label">Frame:</span>
+          <span class="stat-value" id="frame-count">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Time:</span>
+          <span class="stat-value" id="timestamp">0.00s</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">FPS:</span>
+          <span class="stat-value" id="fps">60</span>
+        </div>
+      </div>
+
+      <h2>Primes</h2>
+      <div class="stat-display">
+        <div class="stat-row">
+          <span class="stat-label">Active:</span>
+          <span class="stat-value" id="active-primes">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Density:</span>
+          <span class="stat-value" id="prime-density">0%</span>
+        </div>
+      </div>
+
+      <h2>Resonance</h2>
+      <div class="stat-display">
+        <div class="stat-row">
+          <span class="stat-label">Red:</span>
+          <span class="stat-value" id="red-resonance">0.00</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Black:</span>
+          <span class="stat-value" id="black-resonance">0.00</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Blue:</span>
+          <span class="stat-value" id="blue-resonance">0.00</span>
+        </div>
+      </div>
+
+      <h2>Moss60</h2>
+      <div class="stat-display">
+        <div class="stat-row">
+          <span class="stat-label">Index:</span>
+          <span class="stat-value" id="current-idx">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">R/K/B:</span>
+          <span class="stat-value" id="rkb-digits">0/0/0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Sector:</span>
+          <span class="stat-value" id="lukas-sector">0</span>
+        </div>
+      </div>
+
+      <h2>Export</h2>
+      <div class="control-row">
+        <button id="screenshot-btn">Shot</button>
+        <button id="export-state-btn">State</button>
+      </div>
+      <div class="control-row">
+        <button id="fullscreen-btn">Full</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== MOSS60 FOUNDATION =====
+    const MOSS60 = {
+      RED: "113031491493585389543778774590997079619617525721567332336510".split("").map(Number),
+      BLACK: "011235831459437077415617853819099875279651673033695493257291".split("").map(Number),
+      BLUE: "012776329785893036118967145479098334781325217074992143965631".split("").map(Number),
+      LUKAS: [2, 1, 3, 4, 7, 1, 8, 9, 7, 6, 3, 9]
+    };
+
+    MOSS60.LUKAS_BOUNDS = [0];
+    let sum = 0;
+    for (const d of MOSS60.LUKAS) {
+      sum += d;
+      MOSS60.LUKAS_BOUNDS.push(sum);
+    }
+
+    MOSS60.LINEAGE = [];
+    for (let i = 0; i < 60; i++) {
+      const r = MOSS60.RED[i];
+      const k = MOSS60.BLACK[i];
+      const b = MOSS60.BLUE[i];
+      let max = r, lineage = 'red';
+      if (b > max) { max = b; lineage = 'blue'; }
+      if (k > max) { max = k; lineage = 'black'; }
+      MOSS60.LINEAGE.push(lineage);
+    }
+
+    MOSS60.getSector = (idx) => {
+      const k = ((idx % 60) + 60) % 60;
+      for (let s = 0; s < 12; s++) {
+        if (k >= MOSS60.LUKAS_BOUNDS[s] && k < MOSS60.LUKAS_BOUNDS[s + 1]) return s;
+      }
+      return 11;
+    };
+
+    MOSS60.getState = (idx) => {
+      const k = ((idx % 60) + 60) % 60;
+      return {
+        idx: k,
+        red: MOSS60.RED[k],
+        black: MOSS60.BLACK[k],
+        blue: MOSS60.BLUE[k],
+        lineage: MOSS60.LINEAGE[k],
+        sector: MOSS60.getSector(k),
+        lukas: MOSS60.LUKAS[MOSS60.getSector(k)]
+      };
+    };
+
+    // ===== PRIME UTILITIES =====
+    const PRIMES = new Set();
+    const MAX_PRIME = 1000;
+
+    function buildPrimes(max) {
+      for (let n = 2; n <= max; n++) {
+        let isPrime = true;
+        for (let i = 2; i * i <= n; i++) {
+          if (n % i === 0) { isPrime = false; break; }
+        }
+        if (isPrime) PRIMES.add(n);
+      }
+    }
+
+    buildPrimes(MAX_PRIME);
+    const isPrime = (n) => PRIMES.has(n);
+
+    // ===== BASE CONVERSION =====
+    function toBase(num, base) {
+      if (num === 0) return [0];
+      const digits = [];
+      while (num > 0) {
+        digits.unshift(num % base);
+        num = Math.floor(num / base);
+      }
+      return digits;
+    }
+
+    const BASE_COLORS = {
+      2: ['#000000', '#ffd700'],
+      3: ['#ff3455', '#1a1a1a', '#44aaff'],
+      5: ['#ff0000', '#ff7f00', '#ffff00', '#00ff00', '#0000ff'],
+      8: ['#d62728', '#ff7f0e', '#ffd700', '#bcbd22', '#2ca02c', '#17becf', '#1f77b4', '#9467bd'],
+      10: ['#0b3c5d', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'],
+      12: ['#d62728', '#ff7f0e', '#ffd700', '#bcbd22', '#2ca02c', '#00ff88', '#17becf', '#1f77b4', '#9467bd', '#e377c2', '#ff69b4', '#8b4513']
+    };
+
+    // ===== CANVAS SETUP =====
+    const canvas = document.getElementById('observatory');
+    const ctx = canvas.getContext('2d');
+    const TAU = Math.PI * 2;
+
+    // ===== STATE =====
+    let state = {
+      mode: 'quantum',
+      running: true,
+      frame: 0,
+      time: 0,
+      lastFrameTime: 0,
+      fps: 60,
+      intensity: 0.75,
+      rotation: 1.0,
+      layers: 5,
+      redWeight: 1.0,
+      blackWeight: 1.0,
+      blueWeight: 1.0,
+      primeCount: 0,
+      resonance: { red: 0, black: 0, blue: 0 },
+      // NEW: Visual customization
+      shape: 'circle',
+      shapeSize: 1.0,
+      connectionType: 'none',
+      lineWidth: 1.0,
+      colors: {
+        red: '#ff3455',
+        black: '#1a1a1a',
+        blue: '#44aaff'
+      }
+    };
+
+    // Store particle positions for connections
+    let particleBuffer = [];
+
+    // ===== MODE NAMES =====
+    const MODE_NAMES = {
+      quantum: 'QUANTUM FIELD',
+      prime: 'PRIME LATTICE',
+      harmonic: 'HARMONIC WEB',
+      cellular: 'CA EVOLUTION',
+      yantra: 'YANTRA BLOOM',
+      cryptic: 'CRYPTIC DANCE',
+      hepta: 'HEPTA-SYNC',
+      tesseract: '4D TESSERACT',
+      phyllo: 'PHYLLOTAXIS',
+      hexgrid: 'HEX SPIRAL',
+      loshu: 'LO SHU TILES',
+      metatron: 'METATRON',
+      tiles: 'YANTRA TILES',
+      shapes: 'CA SHAPES',
+      binary: 'BINARY',
+      ternary: 'TERNARY',
+      quinary: 'QUINARY',
+      octal: 'OCTAL',
+      decimal: 'DECIMAL',
+      duodec: 'DUODECIMAL',
+      'quantum-prime': 'QUANTUM + PRIME',
+      'harmonic-yantra': 'HARMONIC + YANTRA',
+      'phyllo-hex': 'PHYLLO + HEX',
+      'binary-ternary': 'BINARY + TERNARY',
+      'prime-tesseract': 'PRIME + 4D',
+      'cryptic-harmonic': 'CRYPTIC + HARMONIC',
+      'metatron-hepta': 'METATRON + HEPTA',
+      'all-layers': 'ALL LAYERS',
+      trails: 'TRAILS MODE',
+      connected: 'CONNECTED',
+      galaxy: 'GALAXY SPIRAL',
+      pulse: 'PULSE WAVE',
+      mandala: 'MANDALA SUPREME'
+    };
+
+    // ===== SHAPE DRAWING =====
+    function drawShape(x, y, size, color, shape = 'circle') {
+      ctx.fillStyle = color;
+      const s = size * state.shapeSize;
+
+      switch (shape) {
+        case 'circle':
+          ctx.beginPath();
+          ctx.arc(x, y, s, 0, TAU);
+          ctx.fill();
+          break;
+
+        case 'square':
+          ctx.fillRect(x - s, y - s, s * 2, s * 2);
+          break;
+
+        case 'diamond':
+          ctx.save();
+          ctx.translate(x, y);
+          ctx.rotate(Math.PI / 4);
+          ctx.fillRect(-s, -s, s * 2, s * 2);
+          ctx.restore();
+          break;
+
+        case 'hexagon':
+          ctx.beginPath();
+          for (let i = 0; i < 6; i++) {
+            const a = (TAU / 6) * i;
+            const px = x + s * Math.cos(a);
+            const py = y + s * Math.sin(a);
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          }
+          ctx.closePath();
+          ctx.fill();
+          break;
+
+        case 'star':
+          ctx.beginPath();
+          for (let i = 0; i < 10; i++) {
+            const a = (TAU / 10) * i - Math.PI / 2;
+            const r = i % 2 === 0 ? s : s * 0.4;
+            const px = x + r * Math.cos(a);
+            const py = y + r * Math.sin(a);
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          }
+          ctx.closePath();
+          ctx.fill();
+          break;
+
+        case 'triangle':
+          ctx.beginPath();
+          for (let i = 0; i < 3; i++) {
+            const a = (TAU / 3) * i - Math.PI / 2;
+            const px = x + s * Math.cos(a);
+            const py = y + s * Math.sin(a);
+            if (i === 0) ctx.moveTo(px, py);
+            else ctx.lineTo(px, py);
+          }
+          ctx.closePath();
+          ctx.fill();
+          break;
+
+        case 'cross':
+          const w = s * 0.3;
+          ctx.fillRect(x - s, y - w, s * 2, w * 2);
+          ctx.fillRect(x - w, y - s, w * 2, s * 2);
+          break;
+      }
+    }
+
+    // ===== CONNECTION DRAWING =====
+    function drawConnections() {
+      if (state.connectionType === 'none') return;
+
+      ctx.lineWidth = state.lineWidth;
+
+      for (let i = 0; i < particleBuffer.length; i++) {
+        for (let j = i + 1; j < particleBuffer.length; j++) {
+          const p1 = particleBuffer[i];
+          const p2 = particleBuffer[j];
+
+          let shouldConnect = false;
+
+          switch (state.connectionType) {
+            case 'primes':
+              shouldConnect = p1.isPrime && p2.isPrime;
+              break;
+
+            case 'lineage':
+              shouldConnect = p1.lineage === p2.lineage;
+              break;
+
+            case 'sequential':
+              shouldConnect = Math.abs(p1.idx - p2.idx) === 1;
+              break;
+
+            case 'sectors':
+              shouldConnect = p1.sector === p2.sector;
+              break;
+
+            case 'all':
+              shouldConnect = true;
+              break;
+          }
+
+          if (shouldConnect) {
+            const dist = Math.hypot(p2.x - p1.x, p2.y - p1.y);
+            const maxDist = Math.min(canvas.width, canvas.height) * 0.2;
+
+            if (dist < maxDist) {
+              const alpha = (1 - dist / maxDist) * 0.3 * state.intensity;
+              ctx.strokeStyle = p1.color.replace(/[\d.]+\)/, `${alpha})`);
+              ctx.beginPath();
+              ctx.moveTo(p1.x, p1.y);
+              ctx.lineTo(p2.x, p2.y);
+              ctx.stroke();
+            }
+          }
+        }
+      }
+    }
+
+    // ===== COLOR UTILITIES =====
+    function hexToRgba(hex, alpha = 1) {
+      hex = hex.replace('#', '');
+      const r = parseInt(hex.substr(0, 2), 16);
+      const g = parseInt(hex.substr(2, 2), 16);
+      const b = parseInt(hex.substr(4, 2), 16);
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    function getLineageColor(lineage, alpha = 1) {
+      const colors = state.colors;
+      if (lineage === 'red') return hexToRgba(colors.red, alpha);
+      if (lineage === 'blue') return hexToRgba(colors.blue, alpha);
+      return hexToRgba(colors.black, alpha);
+    }
+
+    // ===== UI UPDATES =====
+    function updateUI() {
+      document.getElementById('frame-count').textContent = state.frame;
+      document.getElementById('timestamp').textContent = state.time.toFixed(2) + 's';
+      document.getElementById('fps').textContent = Math.round(state.fps);
+
+      const currentState = MOSS60.getState(Math.floor(state.time * 10));
+      document.getElementById('current-idx').textContent = currentState.idx;
+      document.getElementById('rkb-digits').textContent =
+        `${currentState.red}/${currentState.black}/${currentState.blue}`;
+      document.getElementById('lukas-sector').textContent = currentState.sector;
+
+      document.getElementById('active-primes').textContent = state.primeCount;
+      document.getElementById('prime-density').textContent =
+        ((state.primeCount / 60) * 100).toFixed(1) + '%';
+
+      document.getElementById('red-resonance').textContent = state.resonance.red.toFixed(3);
+      document.getElementById('black-resonance').textContent = state.resonance.black.toFixed(3);
+      document.getElementById('blue-resonance').textContent = state.resonance.blue.toFixed(3);
+
+      document.getElementById('mode-name').textContent = MODE_NAMES[state.mode] || state.mode.toUpperCase();
+    }
+
+    // ===== CORE DRAWING FUNCTIONS =====
+
+    function drawQuantumField(t) {
+      const w = canvas.width, h = canvas.height;
+      const cx = w / 2, cy = h / 2;
+      const N = 2000;
+      const maxR = Math.min(w, h) * 0.45;
+
+      particleBuffer = [];
+      let primeCount = 0;
+
+      for (let n = 0; n < N; n++) {
+        const idx = n % 60;
+        const s = MOSS60.getState(idx);
+
+        const baseR = maxR * Math.sqrt(n / N);
+        const primeBoost = isPrime(n % 100) ? 1.15 : 1.0;
+        const r = baseR * primeBoost * (0.8 + 0.2 * s.lukas / 9);
+
+        const baseAngle = (n * TAU / 60) + t * state.rotation * 0.3;
+        const sectorOffset = s.sector * (TAU / 12) * 0.1;
+        const angle = baseAngle + sectorOffset;
+
+        const x = cx + r * Math.cos(angle);
+        const y = cy + r * Math.sin(angle);
+
+        const shimmer = 0.6 + 0.4 * Math.sin(t * 3 + n * 0.05);
+        const intensity = shimmer * state[s.lineage + 'Weight'];
+        const color = getLineageColor(s.lineage, intensity * state.intensity);
+
+        const baseSize = 2 + 2 * (s.red + s.black + s.blue) / 27;
+        const primeGlow = isPrime(n % 100) ? 1.5 : 1.0;
+        const size = baseSize * primeGlow * shimmer;
+
+        if (isPrime(n % 100)) primeCount++;
+
+        drawShape(x, y, size, color, state.shape);
+
+        particleBuffer.push({
+          x, y, idx, lineage: s.lineage, color,
+          isPrime: isPrime(n % 100),
+          sector: s.sector
+        });
+      }
+
+      state.primeCount = primeCount;
+      drawConnections();
+    }
+
+    function drawPrimeLattice(t) {
+      const w = canvas.width, h = canvas.height;
+      const cx = w / 2, cy = h / 2;
+      const gridSize = 16;
+      const spacing = Math.min(w, h) * 0.9 / gridSize;
+
+      particleBuffer = [];
+
+      for (let row = 0; row < gridSize; row++) {
+        for (let col = 0; col < gridSize; col++) {
+          const idx = (row * gridSize + col) % 60;
+          const s = MOSS60.getState(idx);
+
+          const x = cx - (gridSize * spacing / 2) + col * spacing;
+          const y = cy - (gridSize * spacing / 2) + row * spacing;
+
+          const num = (row * gridSize + col + Math.floor(t * 10)) % 100;
+          const prime = isPrime(num);
+
+          if (prime) {
+            const pulse = 0.7 + 0.3 * Math.sin(t * 4 + row + col);
+            const radius = spacing * 0.35 * pulse;
+
+            const color = getLineageColor(s.lineage, pulse * state.intensity);
+            drawShape(x, y, radius, color, state.shape);
+
+            particleBuffer.push({
+              x, y, idx, lineage: s.lineage, color,
+              isPrime: true,
+              sector: s.sector
+            });
+          }
+        }
+      }
+
+      drawConnections();
+    }
+
+    function drawHarmonicWeb(t) {
+      const w = canvas.width, h = canvas.height;
+      const cx = w / 2, cy = h / 2;
+      const rings = state.layers;
+      const maxR = Math.min(w, h) * 0.44;
+
+      particleBuffer = [];
+
+      for (let ring = 0; ring < rings; ring++) {
+        const baseR = maxR * (ring + 1) / rings;
+
+        for (let i = 0; i < 60; i++) {
+          const s = MOSS60.getState(i);
+          const theta = TAU * i / 60;
+
+          const k = 2 + (s.red % 5);
+          const amp = 0.15 + 0.03 * s.lukas;
+          const phase = 0.3 * s.lukas + ring * 0.1;
+          const wave = 1 + amp * Math.sin(k * theta + t * state.rotation + phase);
+
+          const r = baseR * wave;
+          const x = cx + r * Math.cos(theta);
+          const y = cy + r * Math.sin(theta);
+
+          const pulse = 0.6 + 0.4 * Math.sin(t * 2.5 + ring * 0.3 + i * 0.05);
+          const color = getLineageColor(s.lineage, pulse * state.intensity);
+
+          const size = isPrime(i) ? 3 + pulse * 2 : 2;
+          drawShape(x, y, size, color, state.shape);
+
+          particleBuffer.push({
+            x, y, idx: i, lineage: s.lineage, color,
+            isPrime: isPrime(i),
+            sector: s.sector
+          });
+        }
+      }
+
+      drawConnections();
+    }
+
+    // Combination modes
+    function drawQuantumPrime(t) {
+      ctx.globalAlpha = 0.5;
+      drawQuantumField(t);
+      ctx.globalAlpha = 0.5;
+      drawPrimeLattice(t);
+      ctx.globalAlpha = 1;
+    }
+
+    function drawHarmonicYantra(t) {
+      ctx.globalAlpha = 0.6;
+      drawHarmonicWeb(t);
+      ctx.globalAlpha = 0.4;
+      drawYantraBloom(t);
+      ctx.globalAlpha = 1;
+    }
+
+    function drawAllLayers(t) {
+      const modes = [drawQuantumField, drawPrimeLattice, drawHarmonicWeb];
+      const alpha = 0.3;
+      modes.forEach(mode => {
+        ctx.globalAlpha = alpha;
+        mode(t);
+      });
+      ctx.globalAlpha = 1;
+    }
+
+    // Enhanced modes
+    function drawTrails(t) {
+      // Don't clear fully - create trail effect
+      ctx.fillStyle = 'rgba(5, 5, 20, 0.05)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      drawQuantumField(t);
+    }
+
+    function drawGalaxy(t) {
+      const w = canvas.width, h = canvas.height;
+      const cx = w / 2, cy = h / 2;
+      const N = 3000;
+      const maxR = Math.min(w, h) * 0.48;
+
+      particleBuffer = [];
+
+      for (let n = 0; n < N; n++) {
+        const idx = n % 60;
+        const s = MOSS60.getState(idx);
+
+        const r = maxR * Math.pow(n / N, 0.7);
+        const spiralFactor = 3;
+        const angle = (n * TAU / 60) * spiralFactor + t * state.rotation * 0.2;
+
+        const x = cx + r * Math.cos(angle);
+        const y = cy + r * Math.sin(angle);
+
+        const pulse = 0.5 + 0.5 * Math.sin(t * 2 + n * 0.02);
+        const color = getLineageColor(s.lineage, pulse * state.intensity * 0.8);
+
+        const size = 1 + pulse * 2;
+        drawShape(x, y, size, color, state.shape);
+
+        particleBuffer.push({
+          x, y, idx, lineage: s.lineage, color,
+          isPrime: isPrime(idx),
+          sector: s.sector
+        });
+      }
+
+      drawConnections();
+    }
+
+    function drawPulseWave(t) {
+      const w = canvas.width, h = canvas.height;
+      const cx = w / 2, cy = h / 2;
+      const pulseRings = 8;
+      const maxR = Math.min(w, h) * 0.45;
+
+      particleBuffer = [];
+
+      for (let ring = 0; ring < pulseRings; ring++) {
+        const pulse = Math.sin(t * 2 - ring * 0.5);
+        if (pulse < 0) continue;
+
+        const r = maxR * (ring / pulseRings) * (1 + pulse * 0.3);
+
+        for (let i = 0; i < 60; i++) {
+          const s = MOSS60.getState(i);
+          const theta = TAU * i / 60;
+
+          const x = cx + r * Math.cos(theta);
+          const y = cy + r * Math.sin(theta);
+
+          const color = getLineageColor(s.lineage, pulse * state.intensity);
+          const size = 2 + pulse * 3;
+
+          drawShape(x, y, size, color, state.shape);
+
+          particleBuffer.push({
+            x, y, idx: i, lineage: s.lineage, color,
+            isPrime: isPrime(i),
+            sector: s.sector
+          });
+        }
+      }
+
+      drawConnections();
+    }
+
+    function drawMandalaSupreme(t) {
+      const w = canvas.width, h = canvas.height;
+      const cx = w / 2, cy = h / 2;
+      const layers = state.layers * 2;
+      const maxR = Math.min(w, h) * 0.45;
+
+      particleBuffer = [];
+
+      for (let layer = 0; layer < layers; layer++) {
+        const r = maxR * (layer + 1) / layers;
+        const pointsInLayer = 60 + layer * 6;
+
+        for (let i = 0; i < pointsInLayer; i++) {
+          const idx = (i + layer * 7) % 60;
+          const s = MOSS60.getState(idx);
+
+          const theta = TAU * i / pointsInLayer + t * state.rotation * (layer % 2 === 0 ? 1 : -1) * 0.2;
+
+          const x = cx + r * Math.cos(theta);
+          const y = cy + r * Math.sin(theta);
+
+          const pulse = 0.6 + 0.4 * Math.sin(t * 3 + layer + i * 0.1);
+          const color = getLineageColor(s.lineage, pulse * state.intensity);
+
+          const size = (3 - layer * 0.2) * pulse;
+          drawShape(x, y, size, color, state.shape);
+
+          particleBuffer.push({
+            x, y, idx, lineage: s.lineage, color,
+            isPrime: isPrime(idx),
+            sector: s.sector
+          });
+        }
+      }
+
+      drawConnections();
+    }
+
+    // Placeholder functions for other modes (simplified versions)
+    function drawCellularEvolution(t) { drawQuantumField(t); }
+    function drawYantraBloom(t) { drawHarmonicWeb(t); }
+    function drawCrypticDance(t) { drawQuantumField(t); }
+    function drawHeptaSync(t) { drawHarmonicWeb(t); }
+    function drawTesseract(t) { drawQuantumField(t); }
+    function drawPhyllotaxis(t) { drawQuantumField(t); }
+    function drawHexGrid(t) { drawHarmonicWeb(t); }
+    function drawLoShu(t) { drawPrimeLattice(t); }
+    function drawMetatron(t) { drawHarmonicWeb(t); }
+    function drawTiles(t) { drawQuantumField(t); }
+    function drawShapes(t) { drawPrimeLattice(t); }
+    function drawBinary(t) { drawQuantumField(t); }
+    function drawTernary(t) { drawQuantumField(t); }
+    function drawQuinary(t) { drawQuantumField(t); }
+    function drawOctal(t) { drawQuantumField(t); }
+    function drawDecimal(t) { drawQuantumField(t); }
+    function drawDuodecimal(t) { drawQuantumField(t); }
+    function drawPhylloHex(t) { drawQuantumPrime(t); }
+    function drawBinaryTernary(t) { drawQuantumPrime(t); }
+    function drawPrimeTesseract(t) { drawQuantumPrime(t); }
+    function drawCrypticHarmonic(t) { drawHarmonicYantra(t); }
+    function drawMetatronHepta(t) { drawHarmonicYantra(t); }
+    function drawConnected(t) { state.connectionType = 'all'; drawQuantumField(t); }
+
+    // ===== MODE DISPATCHER =====
+    const modes = {
+      quantum: drawQuantumField,
+      prime: drawPrimeLattice,
+      harmonic: drawHarmonicWeb,
+      cellular: drawCellularEvolution,
+      yantra: drawYantraBloom,
+      cryptic: drawCrypticDance,
+      hepta: drawHeptaSync,
+      tesseract: drawTesseract,
+      phyllo: drawPhyllotaxis,
+      hexgrid: drawHexGrid,
+      loshu: drawLoShu,
+      metatron: drawMetatron,
+      tiles: drawTiles,
+      shapes: drawShapes,
+      binary: drawBinary,
+      ternary: drawTernary,
+      quinary: drawQuinary,
+      octal: drawOctal,
+      decimal: drawDecimal,
+      duodec: drawDuodecimal,
+      'quantum-prime': drawQuantumPrime,
+      'harmonic-yantra': drawHarmonicYantra,
+      'phyllo-hex': drawPhylloHex,
+      'binary-ternary': drawBinaryTernary,
+      'prime-tesseract': drawPrimeTesseract,
+      'cryptic-harmonic': drawCrypticHarmonic,
+      'metatron-hepta': drawMetatronHepta,
+      'all-layers': drawAllLayers,
+      trails: drawTrails,
+      connected: drawConnected,
+      galaxy: drawGalaxy,
+      pulse: drawPulseWave,
+      mandala: drawMandalaSupreme
+    };
+
+    // ===== ANIMATION LOOP =====
+    function animate(timestamp) {
+      if (!state.running) {
+        requestAnimationFrame(animate);
+        return;
+      }
+
+      const dt = timestamp - state.lastFrameTime;
+      state.fps = 1000 / dt;
+      state.lastFrameTime = timestamp;
+      state.time = timestamp / 1000;
+      state.frame++;
+
+      // Clear canvas (unless trails mode)
+      if (state.mode !== 'trails') {
+        ctx.fillStyle = 'rgba(5, 5, 20, 0.3)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      }
+
+      // Draw current mode
+      if (modes[state.mode]) {
+        modes[state.mode](state.time);
+      }
+
+      // Calculate resonance
+      const idx = Math.floor(state.time * 10) % 60;
+      const s = MOSS60.getState(idx);
+
+      state.resonance.red = (s.red / 9) * state.redWeight;
+      state.resonance.black = (s.black / 9) * state.blackWeight;
+      state.resonance.blue = (s.blue / 9) * state.blueWeight;
+
+      // Update UI
+      if (state.frame % 10 === 0) updateUI();
+
+      requestAnimationFrame(animate);
+    }
+
+    // ===== EVENT HANDLERS =====
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.mode = btn.getAttribute('data-mode');
+      });
+    });
+
+    // Shape controls
+    document.getElementById('shape-select').addEventListener('change', (e) => {
+      state.shape = e.target.value;
+    });
+
+    document.getElementById('shape-size').addEventListener('input', (e) => {
+      state.shapeSize = parseFloat(e.target.value);
+      document.getElementById('shape-size-val').textContent = e.target.value;
+    });
+
+    // Connection controls
+    document.getElementById('connection-type').addEventListener('change', (e) => {
+      state.connectionType = e.target.value;
+    });
+
+    document.getElementById('line-width').addEventListener('input', (e) => {
+      state.lineWidth = parseFloat(e.target.value);
+      document.getElementById('line-width-val').textContent = e.target.value;
+    });
+
+    // Color controls
+    ['red', 'black', 'blue'].forEach(lineage => {
+      const input = document.getElementById(lineage + '-color');
+      input.addEventListener('input', (e) => {
+        state.colors[lineage] = e.target.value;
+        document.getElementById(lineage + '-preview').style.background = e.target.value;
+      });
+    });
+
+    // Color presets
+    const presets = {
+      moss: { red: '#ff3455', black: '#1a1a1a', blue: '#44aaff' },
+      neon: { red: '#ff00ff', black: '#00ffff', blue: '#ffff00' },
+      fire: { red: '#ff4500', black: '#ff8c00', blue: '#ffd700' },
+      ocean: { red: '#1e90ff', black: '#4169e1', blue: '#00bfff' },
+      forest: { red: '#228b22', black: '#006400', blue: '#90ee90' },
+      sunset: { red: '#ff6347', black: '#ff4500', blue: '#ffa500' }
+    };
+
+    Object.keys(presets).forEach(presetName => {
+      document.getElementById('preset-' + presetName).addEventListener('click', () => {
+        const preset = presets[presetName];
+        state.colors = { ...preset };
+        document.getElementById('red-color').value = preset.red;
+        document.getElementById('black-color').value = preset.black;
+        document.getElementById('blue-color').value = preset.blue;
+        document.getElementById('red-preview').style.background = preset.red;
+        document.getElementById('black-preview').style.background = preset.black;
+        document.getElementById('blue-preview').style.background = preset.blue;
+      });
+    });
+
+    // Standard sliders
+    const sliders = {
+      intensity: (v) => { state.intensity = v; document.getElementById('intensity-val').textContent = v; },
+      rotation: (v) => { state.rotation = v; document.getElementById('rotation-val').textContent = v; },
+      layers: (v) => { state.layers = Math.round(v); document.getElementById('layers-val').textContent = Math.round(v); },
+      'red-weight': (v) => { state.redWeight = v; document.getElementById('red-weight-val').textContent = v; },
+      'black-weight': (v) => { state.blackWeight = v; document.getElementById('black-weight-val').textContent = v; },
+      'blue-weight': (v) => { state.blueWeight = v; document.getElementById('blue-weight-val').textContent = v; }
+    };
+
+    Object.keys(sliders).forEach(id => {
+      const input = document.getElementById(id);
+      if (input) {
+        input.addEventListener('input', (e) => {
+          sliders[id](parseFloat(e.target.value));
+        });
+      }
+    });
+
+    // Action buttons
+    document.getElementById('reset-btn').addEventListener('click', () => {
+      state.time = 0;
+      state.frame = 0;
+    });
+
+    document.getElementById('freeze-btn').addEventListener('click', () => {
+      state.running = !state.running;
+      document.getElementById('freeze-btn').textContent = state.running ? 'Freeze' : 'Resume';
+    });
+
+    document.getElementById('fullscreen-btn').addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+      } else {
+        document.exitFullscreen();
+      }
+    });
+
+    document.getElementById('screenshot-btn').addEventListener('click', () => {
+      const link = document.createElement('a');
+      link.download = `moss60_${state.mode}_${Date.now()}.png`;
+      link.href = canvas.toDataURL();
+      link.click();
+    });
+
+    document.getElementById('export-state-btn').addEventListener('click', () => {
+      const exportData = JSON.stringify({
+        mode: state.mode,
+        visual: {
+          shape: state.shape,
+          shapeSize: state.shapeSize,
+          connectionType: state.connectionType,
+          lineWidth: state.lineWidth,
+          colors: state.colors
+        },
+        parameters: {
+          intensity: state.intensity,
+          rotation: state.rotation,
+          layers: state.layers,
+          weights: {
+            red: state.redWeight,
+            black: state.blackWeight,
+            blue: state.blueWeight
+          }
+        },
+        timestamp: state.time,
+        moss60State: MOSS60.getState(Math.floor(state.time * 10))
+      }, null, 2);
+
+      const blob = new Blob([exportData], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.download = `moss60_ultimate_${Date.now()}.json`;
+      link.href = url;
+      link.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // Keyboard shortcuts
+    window.addEventListener('keydown', (e) => {
+      if (e.key === ' ') {
+        e.preventDefault();
+        document.getElementById('freeze-btn').click();
+      } else if (e.key >= '1' && e.key <= '9') {
+        const modeKeys = ['quantum', 'prime', 'harmonic', 'cellular', 'yantra', 'cryptic', 'hepta', 'tesseract', 'phyllo'];
+        const idx = parseInt(e.key) - 1;
+        if (idx < modeKeys.length) {
+          state.mode = modeKeys[idx];
+          document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.getAttribute('data-mode') === state.mode);
+          });
+        }
+      }
+      // Shape quick keys
+      else if (e.key === 'c') state.shape = 'circle';
+      else if (e.key === 's') state.shape = 'square';
+      else if (e.key === 'd') state.shape = 'diamond';
+      else if (e.key === 'h') state.shape = 'hexagon';
+    });
+
+    // ===== START =====
+    updateUI();
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>

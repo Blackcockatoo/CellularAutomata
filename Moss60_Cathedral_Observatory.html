@@ -1,0 +1,1485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Moss60 Cathedral Observatory</title>
+  <style>
+    :root {
+      --midnight: #050514;
+      --deep-blue: #0a0f24;
+      --sun-gold: #ffd700;
+      --moss-red: #ff3455;
+      --moss-blue: #44aaff;
+      --moss-black: #1a1a1a;
+      --void: #000000;
+      --text: #e4e8ff;
+      --panel-glow: rgba(27, 206, 255, 0.12);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: radial-gradient(circle at 30% 20%, #0a1428 0%, #050514 50%, #000000 100%);
+      color: var(--text);
+      overflow: hidden;
+      height: 100vh;
+    }
+
+    #app {
+      display: grid;
+      grid-template-columns: 280px 1fr 260px;
+      height: 100vh;
+      gap: 0;
+    }
+
+    .panel {
+      background: linear-gradient(135deg, rgba(10, 15, 36, 0.95), rgba(5, 5, 20, 0.98));
+      backdrop-filter: blur(12px);
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+      overflow-y: auto;
+      padding: 12px;
+    }
+
+    .panel::-webkit-scrollbar { width: 6px; }
+    .panel::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.3); }
+    .panel::-webkit-scrollbar-thumb { background: rgba(255, 215, 0, 0.4); border-radius: 3px; }
+
+    #main-canvas-area {
+      position: relative;
+      background: radial-gradient(circle at center, rgba(10, 20, 40, 0.3), rgba(0, 0, 0, 0.9));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    canvas {
+      max-width: 100%;
+      max-height: 100%;
+      display: block;
+    }
+
+    h1 {
+      font-size: 16px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      background: linear-gradient(135deg, var(--sun-gold), var(--moss-blue));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-weight: 700;
+    }
+
+    h2 {
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin: 14px 0 6px;
+      color: var(--sun-gold);
+      opacity: 0.9;
+      border-bottom: 1px solid rgba(255, 215, 0, 0.2);
+      padding-bottom: 3px;
+    }
+
+    .mode-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      margin-bottom: 10px;
+    }
+
+    .mode-grid button {
+      padding: 5px 6px;
+      font-size: 9px;
+    }
+
+    button {
+      padding: 6px 10px;
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(68, 170, 255, 0.15));
+      border: 1px solid rgba(255, 215, 0, 0.4);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-weight: 600;
+    }
+
+    button:hover {
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.3), rgba(68, 170, 255, 0.3));
+      box-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
+      transform: translateY(-1px);
+    }
+
+    button.active {
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.4), rgba(68, 170, 255, 0.4));
+      box-shadow: 0 0 16px rgba(255, 215, 0, 0.6);
+    }
+
+    .control-group {
+      margin-bottom: 10px;
+    }
+
+    label {
+      font-size: 10px;
+      letter-spacing: 0.05em;
+      color: rgba(228, 232, 255, 0.85);
+      display: block;
+      margin-bottom: 3px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 12px;
+      height: 12px;
+      background: var(--sun-gold);
+      border-radius: 50%;
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
+    }
+
+    .stat-display {
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 215, 0, 0.2);
+      border-radius: 4px;
+      padding: 6px;
+      margin-bottom: 6px;
+      font-size: 10px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 3px;
+    }
+
+    .stat-label {
+      color: rgba(255, 215, 0, 0.8);
+    }
+
+    .stat-value {
+      color: var(--moss-blue);
+      font-weight: 600;
+    }
+
+    #overlay-display {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: rgba(5, 5, 20, 0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 215, 0, 0.3);
+      border-radius: 6px;
+      padding: 8px 12px;
+      font-size: 10px;
+      pointer-events: none;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .mode-indicator {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--sun-gold);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 4px;
+    }
+
+    .control-row {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
+
+    .control-row button {
+      flex: 1;
+    }
+
+    @media (max-width: 1200px) {
+      #app {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+      }
+      .panel { display: none; }
+      #overlay-display { font-size: 9px; padding: 6px 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <!-- LEFT PANEL: MODE SELECTOR -->
+    <div class="panel" id="left-panel">
+      <h1>Cathedral Observatory</h1>
+      <p style="font-size: 9px; opacity: 0.7; margin-bottom: 12px;">
+        Unified Moss60 consciousness laboratory with 20+ dimensional projections
+      </p>
+
+      <h2>Core Modes</h2>
+      <div class="mode-grid">
+        <button class="mode-btn active" data-mode="quantum">Quantum</button>
+        <button class="mode-btn" data-mode="prime">Prime</button>
+        <button class="mode-btn" data-mode="harmonic">Harmonic</button>
+        <button class="mode-btn" data-mode="cellular">CA</button>
+        <button class="mode-btn" data-mode="yantra">Yantra</button>
+        <button class="mode-btn" data-mode="cryptic">Cryptic</button>
+        <button class="mode-btn" data-mode="hepta">Hepta</button>
+        <button class="mode-btn" data-mode="tesseract">4D</button>
+      </div>
+
+      <h2>Sacred Geometry</h2>
+      <div class="mode-grid">
+        <button class="mode-btn" data-mode="phyllo">Phyllo</button>
+        <button class="mode-btn" data-mode="hexgrid">Hex Grid</button>
+        <button class="mode-btn" data-mode="loshu">Lo Shu</button>
+        <button class="mode-btn" data-mode="metatron">Metatron</button>
+        <button class="mode-btn" data-mode="tiles">Tiles</button>
+        <button class="mode-btn" data-mode="shapes">Shapes</button>
+      </div>
+
+      <h2>Number Bases</h2>
+      <div class="mode-grid">
+        <button class="mode-btn" data-mode="binary">Binary</button>
+        <button class="mode-btn" data-mode="ternary">Ternary</button>
+        <button class="mode-btn" data-mode="quinary">Quinary</button>
+        <button class="mode-btn" data-mode="octal">Octal</button>
+        <button class="mode-btn" data-mode="decimal">Decimal</button>
+        <button class="mode-btn" data-mode="duodec">Base-12</button>
+      </div>
+
+      <h2>Parameters</h2>
+      <div class="control-group">
+        <label>Intensity: <span id="intensity-val">0.75</span></label>
+        <input type="range" id="intensity" min="0" max="1" step="0.01" value="0.75">
+      </div>
+
+      <div class="control-group">
+        <label>Speed: <span id="rotation-val">1.0</span></label>
+        <input type="range" id="rotation" min="0.1" max="5" step="0.1" value="1.0">
+      </div>
+
+      <div class="control-group">
+        <label>Complexity: <span id="layers-val">5</span></label>
+        <input type="range" id="layers" min="1" max="12" step="1" value="5">
+      </div>
+
+      <h2>Lineage Mix</h2>
+      <div class="control-group">
+        <label>Red: <span id="red-weight-val">1.0</span></label>
+        <input type="range" id="red-weight" min="0" max="2" step="0.1" value="1.0">
+      </div>
+
+      <div class="control-group">
+        <label>Black: <span id="black-weight-val">1.0</span></label>
+        <input type="range" id="black-weight" min="0" max="2" step="0.1" value="1.0">
+      </div>
+
+      <div class="control-group">
+        <label>Blue: <span id="blue-weight-val">1.0</span></label>
+        <input type="range" id="blue-weight" min="0" max="2" step="0.1" value="1.0">
+      </div>
+
+      <h2>Actions</h2>
+      <div class="control-row">
+        <button id="freeze-btn">Freeze</button>
+        <button id="reset-btn">Reset</button>
+      </div>
+    </div>
+
+    <!-- MAIN CANVAS -->
+    <div id="main-canvas-area">
+      <canvas id="observatory" width="1400" height="1000"></canvas>
+      <div id="overlay-display">
+        <div class="mode-indicator" id="mode-name">QUANTUM FIELD</div>
+        <div id="overlay-stats"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL: ANALYSIS -->
+    <div class="panel" id="right-panel">
+      <h1>Live Analysis</h1>
+
+      <h2>System</h2>
+      <div class="stat-display">
+        <div class="stat-row">
+          <span class="stat-label">Frame:</span>
+          <span class="stat-value" id="frame-count">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Time:</span>
+          <span class="stat-value" id="timestamp">0.00s</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">FPS:</span>
+          <span class="stat-value" id="fps">60</span>
+        </div>
+      </div>
+
+      <h2>Primes</h2>
+      <div class="stat-display">
+        <div class="stat-row">
+          <span class="stat-label">Active:</span>
+          <span class="stat-value" id="active-primes">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Density:</span>
+          <span class="stat-value" id="prime-density">0%</span>
+        </div>
+      </div>
+
+      <h2>Resonance</h2>
+      <div class="stat-display">
+        <div class="stat-row">
+          <span class="stat-label">Red:</span>
+          <span class="stat-value" id="red-resonance">0.00</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Black:</span>
+          <span class="stat-value" id="black-resonance">0.00</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Blue:</span>
+          <span class="stat-value" id="blue-resonance">0.00</span>
+        </div>
+      </div>
+
+      <h2>Moss60 State</h2>
+      <div class="stat-display">
+        <div class="stat-row">
+          <span class="stat-label">Index:</span>
+          <span class="stat-value" id="current-idx">0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">R/K/B:</span>
+          <span class="stat-value" id="rkb-digits">0/0/0</span>
+        </div>
+        <div class="stat-row">
+          <span class="stat-label">Sector:</span>
+          <span class="stat-value" id="lukas-sector">0</span>
+        </div>
+      </div>
+
+      <h2>Export</h2>
+      <div class="control-row">
+        <button id="screenshot-btn">Shot</button>
+        <button id="export-state-btn">State</button>
+      </div>
+      <div class="control-row">
+        <button id="fullscreen-btn">Fullscreen</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ===== MOSS60 FOUNDATION =====
+    const MOSS60 = {
+      RED: "113031491493585389543778774590997079619617525721567332336510".split("").map(Number),
+      BLACK: "011235831459437077415617853819099875279651673033695493257291".split("").map(Number),
+      BLUE: "012776329785893036118967145479098334781325217074992143965631".split("").map(Number),
+      LUKAS: [2, 1, 3, 4, 7, 1, 8, 9, 7, 6, 3, 9]
+    };
+
+    MOSS60.LUKAS_BOUNDS = [0];
+    let sum = 0;
+    for (const d of MOSS60.LUKAS) {
+      sum += d;
+      MOSS60.LUKAS_BOUNDS.push(sum);
+    }
+
+    MOSS60.LINEAGE = [];
+    for (let i = 0; i < 60; i++) {
+      const r = MOSS60.RED[i];
+      const k = MOSS60.BLACK[i];
+      const b = MOSS60.BLUE[i];
+      let max = r, lineage = 'red';
+      if (b > max) { max = b; lineage = 'blue'; }
+      if (k > max) { max = k; lineage = 'black'; }
+      MOSS60.LINEAGE.push(lineage);
+    }
+
+    MOSS60.getSector = (idx) => {
+      const k = ((idx % 60) + 60) % 60;
+      for (let s = 0; s < 12; s++) {
+        if (k >= MOSS60.LUKAS_BOUNDS[s] && k < MOSS60.LUKAS_BOUNDS[s + 1]) return s;
+      }
+      return 11;
+    };
+
+    MOSS60.getState = (idx) => {
+      const k = ((idx % 60) + 60) % 60;
+      return {
+        idx: k,
+        red: MOSS60.RED[k],
+        black: MOSS60.BLACK[k],
+        blue: MOSS60.BLUE[k],
+        lineage: MOSS60.LINEAGE[k],
+        sector: MOSS60.getSector(k),
+        lukas: MOSS60.LUKAS[MOSS60.getSector(k)]
+      };
+    };
+
+    // ===== PRIME UTILITIES =====
+    const PRIMES = new Set();
+    const MAX_PRIME = 1000;
+
+    function buildPrimes(max) {
+      for (let n = 2; n <= max; n++) {
+        let isPrime = true;
+        for (let i = 2; i * i <= n; i++) {
+          if (n % i === 0) { isPrime = false; break; }
+        }
+        if (isPrime) PRIMES.add(n);
+      }
+    }
+
+    buildPrimes(MAX_PRIME);
+    const isPrime = (n) => PRIMES.has(n);
+
+    // ===== BASE CONVERSION UTILITIES =====
+    function toBase(num, base) {
+      if (num === 0) return [0];
+      const digits = [];
+      while (num > 0) {
+        digits.unshift(num % base);
+        num = Math.floor(num / base);
+      }
+      return digits;
+    }
+
+    // Color palettes for different bases
+    const BASE_COLORS = {
+      2: ['#000000', '#ffd700'], // Binary: Black, Yellow
+      3: ['#ff3455', '#1a1a1a', '#44aaff'], // Ternary: Red, Black, Blue
+      4: ['#ff3455', '#ffd700', '#44aaff', '#00ff88'], // Quaternary
+      5: ['#ff0000', '#ff7f00', '#ffff00', '#00ff00', '#0000ff'], // Rainbow
+      6: ['#d62728', '#ff7f0e', '#ffd700', '#2ca02c', '#1f77b4', '#9467bd'],
+      7: ['#ff0000', '#ff7f00', '#ffff00', '#00ff00', '#0000ff', '#4b0082', '#9400d3'], // Full rainbow
+      8: ['#d62728', '#ff7f0e', '#ffd700', '#bcbd22', '#2ca02c', '#17becf', '#1f77b4', '#9467bd'],
+      10: ['#0b3c5d', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd', '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'],
+      12: ['#d62728', '#ff7f0e', '#ffd700', '#bcbd22', '#2ca02c', '#00ff88', '#17becf', '#1f77b4', '#9467bd', '#e377c2', '#ff69b4', '#8b4513']
+    };
+
+    // ===== CANVAS SETUP =====
+    const canvas = document.getElementById('observatory');
+    const ctx = canvas.getContext('2d');
+    const TAU = Math.PI * 2;
+
+    // ===== STATE =====
+    let state = {
+      mode: 'quantum',
+      running: true,
+      frame: 0,
+      time: 0,
+      lastFrameTime: 0,
+      fps: 60,
+      intensity: 0.75,
+      rotation: 1.0,
+      layers: 5,
+      redWeight: 1.0,
+      blackWeight: 1.0,
+      blueWeight: 1.0,
+      primeCount: 0,
+      resonance: { red: 0, black: 0, blue: 0 }
+    };
+
+    // ===== MODE NAMES =====
+    const MODE_NAMES = {
+      quantum: 'QUANTUM FIELD',
+      prime: 'PRIME LATTICE',
+      harmonic: 'HARMONIC WEB',
+      cellular: 'CA EVOLUTION',
+      yantra: 'YANTRA BLOOM',
+      cryptic: 'CRYPTIC DANCE',
+      hepta: 'HEPTA-SYNC',
+      tesseract: '4D TESSERACT',
+      phyllo: 'PHYLLOTAXIS',
+      hexgrid: 'HEX SPIRAL',
+      loshu: 'LO SHU TILES',
+      metatron: 'METATRON',
+      tiles: 'YANTRA TILES',
+      shapes: 'CA SHAPES',
+      binary: 'BINARY (BASE-2)',
+      ternary: 'TERNARY (BASE-3)',
+      quinary: 'QUINARY (BASE-5)',
+      octal: 'OCTAL (BASE-8)',
+      decimal: 'DECIMAL (BASE-10)',
+      duodec: 'DUODECIMAL (BASE-12)'
+    };
+
+    // ===== UI UPDATES =====
+    function updateUI() {
+      document.getElementById('frame-count').textContent = state.frame;
+      document.getElementById('timestamp').textContent = state.time.toFixed(2) + 's';
+      document.getElementById('fps').textContent = Math.round(state.fps);
+
+      const currentState = MOSS60.getState(Math.floor(state.time * 10));
+      document.getElementById('current-idx').textContent = currentState.idx;
+      document.getElementById('rkb-digits').textContent =
+        `${currentState.red}/${currentState.black}/${currentState.blue}`;
+      document.getElementById('lukas-sector').textContent = currentState.sector;
+
+      document.getElementById('active-primes').textContent = state.primeCount;
+      document.getElementById('prime-density').textContent =
+        ((state.primeCount / 60) * 100).toFixed(1) + '%';
+
+      document.getElementById('red-resonance').textContent = state.resonance.red.toFixed(3);
+      document.getElementById('black-resonance').textContent = state.resonance.black.toFixed(3);
+      document.getElementById('blue-resonance').textContent = state.resonance.blue.toFixed(3);
+
+      document.getElementById('mode-name').textContent = MODE_NAMES[state.mode] || state.mode.toUpperCase();
+    }
+
+    // ===== DRAWING FUNCTIONS =====
+
+    function drawQuantumField(t) {
+      const w = canvas.width, h = canvas.height;
+      const cx = w / 2, cy = h / 2;
+      const N = 2000;
+      const maxR = Math.min(w, h) * 0.45;
+
+      let primeCount = 0;
+
+      for (let n = 0; n < N; n++) {
+        const idx = n % 60;
+        const s = MOSS60.getState(idx);
+
+        const baseR = maxR * Math.sqrt(n / N);
+        const primeBoost = isPrime(n % 100) ? 1.15 : 1.0;
+        const r = baseR * primeBoost * (0.8 + 0.2 * s.lukas / 9);
+
+        const baseAngle = (n * TAU / 60) + t * state.rotation * 0.3;
+        const sectorOffset = s.sector * (TAU / 12) * 0.1;
+        const angle = baseAngle + sectorOffset;
+
+        const x = cx + r * Math.cos(angle);
+        const y = cy + r * Math.sin(angle);
+
+        let color;
+        const shimmer = 0.6 + 0.4 * Math.sin(t * 3 + n * 0.05);
+
+        if (s.lineage === 'red') {
+          const intensity = shimmer * state.redWeight;
+          color = `rgba(255, 52, 85, ${intensity * state.intensity})`;
+        } else if (s.lineage === 'blue') {
+          const intensity = shimmer * state.blueWeight;
+          color = `rgba(68, 170, 255, ${intensity * state.intensity})`;
+        } else {
+          const intensity = shimmer * state.blackWeight;
+          color = `rgba(255, 215, 0, ${intensity * state.intensity * 0.7})`;
+        }
+
+        const baseSize = 2 + 2 * (s.red + s.black + s.blue) / 27;
+        const primeGlow = isPrime(n % 100) ? 1.5 : 1.0;
+        const size = baseSize * primeGlow * shimmer;
+
+        if (isPrime(n % 100)) primeCount++;
+
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(x, y, size, 0, TAU);
+        ctx.fill();
+      }
+
+      state.primeCount = primeCount;
+    }
+
+    function drawPrimeLattice(t) {
+      const w = canvas.width, h = canvas.height;
+      const cx = w / 2, cy = h / 2;
+      const gridSize = 16;
+      const spacing = Math.min(w, h) * 0.9 / gridSize;
+
+      for (let row = 0; row < gridSize; row++) {
+        for (let col = 0; col < gridSize; col++) {
+          const idx = (row * gridSize + col) % 60;
+          const s = MOSS60.getState(idx);
+
+          const x = cx - (gridSize * spacing / 2) + col * spacing;
+          const y = cy - (gridSize * spacing / 2) + row * spacing;
+
+          const num = (row * gridSize + col + Math.floor(t * 10)) % 100;
+          const prime = isPrime(num);
+
+          if (prime) {
+            const pulse = 0.7 + 0.3 * Math.sin(t * 4 + row + col);
+            const radius = spacing * 0.35 * pulse;
+
+            let color;
+            if (s.lineage === 'red') color = `rgba(255, 52, 85, ${pulse * state.intensity})`;
+            else if (s.lineage === 'blue') color = `rgba(68, 170, 255, ${pulse * state.intensity})`;
+            else color = `rgba(255, 215, 0, ${pulse * state.intensity * 0.8})`;
+
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, TAU);
+            ctx.fill();
+          }
+        }
+      }
+    }
+
+    function drawHarmonicWeb(t) {
+      const w = canvas.width, h = canvas.height;
+      const cx = w / 2, cy = h / 2;
+      const rings = state.layers;
+      const maxR = Math.min(w, h) * 0.44;
+
+      const points = Array.from({ length: rings }, () => []);
+
+      for (let ring = 0; ring < rings; ring++) {
+        const baseR = maxR * (ring + 1) / rings;
+
+        for (let i = 0; i < 60; i++) {
+          const s = MOSS60.getState(i);
+          const theta = TAU * i / 60;
+
+          const k = 2 + (s.red % 5);
+          const amp = 0.15 + 0.03 * s.lukas;
+          const phase = 0.3 * s.lukas + ring * 0.1;
+          const wave = 1 + amp * Math.sin(k * theta + t * state.rotation + phase);
+
+          const r = baseR * wave;
+          const x = cx + r * Math.cos(theta);
+          const y = cy + r * Math.sin(theta);
+
+          points[ring].push({ x, y, state: s, isPrime: isPrime(i) });
+
+          let color;
+          const pulse = 0.6 + 0.4 * Math.sin(t * 2.5 + ring * 0.3 + i * 0.05);
+
+          if (s.lineage === 'red') color = `rgba(255, 52, 85, ${pulse * state.intensity})`;
+          else if (s.lineage === 'blue') color = `rgba(68, 170, 255, ${pulse * state.intensity})`;
+          else color = `rgba(255, 215, 0, ${pulse * state.intensity * 0.7})`;
+
+          const size = isPrime(i) ? 3 + pulse * 2 : 2;
+
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.arc(x, y, size, 0, TAU);
+          ctx.fill();
+        }
+      }
+
+      // Radial connections
+      for (let i = 0; i < 60; i++) {
+        const s = MOSS60.getState(i);
+        let color;
+
+        if (s.lineage === 'red') color = 'rgba(255, 52, 85, 0.15)';
+        else if (s.lineage === 'blue') color = 'rgba(68, 170, 255, 0.15)';
+        else color = 'rgba(255, 215, 0, 0.1)';
+
+        ctx.strokeStyle = color;
+        ctx.lineWidth = isPrime(i) ? 1.5 : 0.5;
+        ctx.beginPath();
+
+        for (let ring = 0; ring < rings; ring++) {
+          const p = points[ring][i];
+          if (ring === 0) ctx.moveTo(p.x, p.y);
+          else ctx.lineTo(p.x, p.y);
+        }
+        ctx.stroke();
+      }
+    }
+
+    function drawCellularEvolution(t) {
+      const w = canvas.width, h = canvas.height;
+      const rows = 40, cols = 60;
+      const cellW = w / cols, cellH = h / rows;
+
+      const currentRow = Math.floor(t * 2) % rows;
+
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          const idx = col % 60;
+          const s = MOSS60.getState(idx);
+
+          const seed = (row * 7 + col * 11 + Math.floor(t * 5)) % 256;
+          const rule = (90 + s.red * 10 + s.black * 5 + s.blue * 3) % 256;
+
+          const alive = ((rule >> (seed % 8)) & 1) === 1;
+
+          const x = col * cellW;
+          const y = row * cellH;
+
+          if (alive) {
+            let color;
+            const glow = row === currentRow ? 1.0 : 0.6;
+
+            if (s.lineage === 'red') color = `rgba(255, 52, 85, ${glow * state.intensity})`;
+            else if (s.lineage === 'blue') color = `rgba(68, 170, 255, ${glow * state.intensity})`;
+            else color = `rgba(255, 215, 0, ${glow * state.intensity * 0.8})`;
+
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y, cellW + 1, cellH + 1);
+          }
+        }
+      }
+    }
+
+    function drawYantraBloom(t) {
+      const w = canvas.width, h = canvas.height;
+      const cx = w / 2, cy = h / 2;
+      const baseR = Math.min(w, h) * 0.4;
+
+      ctx.save();
+      ctx.translate(cx, cy);
+
+      for (let i = 1; i <= 6; i++) {
+        ctx.strokeStyle = `rgba(255, 255, 255, ${0.15 * i / 6})`;
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.arc(0, 0, baseR * i / 6, 0, TAU);
+        ctx.stroke();
+      }
+
+      const layers = state.layers;
+      for (let k = 0; k < layers; k++) {
+        const r = baseR * (0.3 + 0.6 * k / (layers - 1));
+        const s = MOSS60.getState((k * 7) % 60);
+
+        let color;
+        if (s.lineage === 'red') color = `rgba(255, 52, 85, ${0.5 * state.intensity})`;
+        else if (s.lineage === 'blue') color = `rgba(68, 170, 255, ${0.5 * state.intensity})`;
+        else color = `rgba(255, 215, 0, ${0.4 * state.intensity})`;
+
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.5;
+
+        const spin = t * state.rotation * 0.3 + k * 0.15;
+
+        ctx.save();
+        ctx.rotate(spin);
+        ctx.beginPath();
+
+        for (let i = 0; i < 3; i++) {
+          const angle = (TAU / 3) * i - Math.PI / 2;
+          const x = r * Math.cos(angle);
+          const y = r * Math.sin(angle);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      ctx.restore();
+    }
+
+    function drawCrypticDance(t) {
+      const w = canvas.width, h = canvas.height;
+      const cx = w / 2, cy = h / 2;
+      const N = 1000;
+      const maxR = Math.min(w, h) * 0.43;
+
+      for (let n = 0; n < N; n++) {
+        const idx = n % 60;
+        const s = MOSS60.getState(idx);
+
+        const crypt = (s.red ^ s.black ^ s.blue) + ((s.red << 2) | s.black);
+
+        const r = maxR * Math.sqrt(n / N);
+        const angle = (n * TAU * 0.618) + (crypt / 255) * TAU + t * state.rotation * 0.2;
+
+        const x = cx + r * Math.cos(angle);
+        const y = cy + r * Math.sin(angle);
+
+        const cryptLevel = crypt / 255;
+        const hue = (cryptLevel * 360 + t * 20) % 360;
+        const sat = 60 + cryptLevel * 40;
+        const light = 40 + cryptLevel * 30;
+
+        ctx.fillStyle = `hsla(${hue}, ${sat}%, ${light}%, ${state.intensity * 0.7})`;
+
+        const size = 1.5 + cryptLevel * 3;
+        ctx.beginPath();
+        ctx.arc(x, y, size, 0, TAU);
+        ctx.fill();
+      }
+    }
+
+    function drawHeptaSync(t) {
+      const w = canvas.width, h = canvas.height;
+      const cx = w / 2, cy = h / 2;
+      const rings = 7;
+      const maxR = Math.min(w, h) * 0.42;
+
+      for (let ring = 0; ring < rings; ring++) {
+        const r = maxR * (ring + 1) / rings;
+        const sides = 7;
+        const rotation = t * state.rotation * (ring % 2 === 0 ? 1 : -1);
+
+        for (let i = 0; i < sides; i++) {
+          const angle1 = (TAU * i / sides) + rotation;
+          const angle2 = (TAU * (i + 1) / sides) + rotation;
+
+          const x1 = cx + r * Math.cos(angle1);
+          const y1 = cy + r * Math.sin(angle1);
+          const x2 = cx + r * Math.cos(angle2);
+          const y2 = cy + r * Math.sin(angle2);
+
+          const idx = (ring * 7 + i) % 60;
+          const s = MOSS60.getState(idx);
+
+          let color;
+          if (s.lineage === 'red') color = `rgba(255, 52, 85, ${0.6 * state.intensity})`;
+          else if (s.lineage === 'blue') color = `rgba(68, 170, 255, ${0.6 * state.intensity})`;
+          else color = `rgba(255, 215, 0, ${0.5 * state.intensity})`;
+
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.stroke();
+
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.arc(x1, y1, 3, 0, TAU);
+          ctx.fill();
+        }
+      }
+    }
+
+    function drawTesseract(t) {
+      const w = canvas.width, h = canvas.height;
+      const cx = w / 2, cy = h / 2;
+      const size1 = Math.min(w, h) * 0.3;
+
+      const rotX = t * state.rotation * 0.3;
+      const rotY = t * state.rotation * 0.4;
+      const rot4D = t * state.rotation * 0.2;
+
+      const vertices4D = [];
+      for (let i = 0; i < 16; i++) {
+        const x = (i & 1) ? 1 : -1;
+        const y = (i & 2) ? 1 : -1;
+        const z = (i & 4) ? 1 : -1;
+        const w = (i & 8) ? 1 : -1;
+        vertices4D.push([x, y, z, w]);
+      }
+
+      const project = (v) => {
+        let [x, y, z, w] = v;
+
+        const c4 = Math.cos(rot4D), s4 = Math.sin(rot4D);
+        [x, w] = [x * c4 - w * s4, x * s4 + w * c4];
+
+        const cx = Math.cos(rotX), sx = Math.sin(rotX);
+        [y, z] = [y * cx - z * sx, y * sx + z * cx];
+
+        const cy = Math.cos(rotY), sy = Math.sin(rotY);
+        [x, z] = [x * cy + z * sy, -x * sy + z * cy];
+
+        const dist4D = 3;
+        const scale3D = dist4D / (dist4D - w);
+        x *= scale3D;
+        y *= scale3D;
+        z *= scale3D;
+
+        const dist3D = 4;
+        const scale2D = dist3D / (dist3D - z);
+
+        return {
+          x: cx + x * size1 * scale2D,
+          y: cy + y * size1 * scale2D,
+          depth: z
+        };
+      };
+
+      const projected = vertices4D.map(v => project(v));
+
+      const edges = [
+        [0,1],[1,3],[3,2],[2,0],
+        [4,5],[5,7],[7,6],[6,4],
+        [0,4],[1,5],[2,6],[3,7],
+        [8,9],[9,11],[11,10],[10,8],
+        [12,13],[13,15],[15,14],[14,12],
+        [8,12],[9,13],[10,14],[11,15],
+        [0,8],[1,9],[2,10],[3,11],
+        [4,12],[5,13],[6,14],[7,15]
+      ];
+
+      edges.forEach(([i, j]) => {
+        const p1 = projected[i];
+        const p2 = projected[j];
+
+        const avgDepth = (p1.depth + p2.depth) / 2;
+        const alpha = 0.2 + 0.6 * ((avgDepth + 2) / 4);
+
+        const idx = (i + j) % 60;
+        const s = MOSS60.getState(idx);
+
+        let color;
+        if (s.lineage === 'red') color = `rgba(255, 52, 85, ${alpha * state.intensity})`;
+        else if (s.lineage === 'blue') color = `rgba(68, 170, 255, ${alpha * state.intensity})`;
+        else color = `rgba(255, 215, 0, ${alpha * state.intensity * 0.8})`;
+
+        ctx.strokeStyle = color;
+        ctx.lineWidth = isPrime(i + j) ? 2 : 1;
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.stroke();
+      });
+
+      projected.forEach((p, i) => {
+        const size = 4 * ((p.depth + 2) / 4);
+        const s = MOSS60.getState(i % 60);
+
+        let color;
+        if (s.lineage === 'red') color = 'rgba(255, 52, 85, 0.9)';
+        else if (s.lineage === 'blue') color = 'rgba(68, 170, 255, 0.9)';
+        else color = 'rgba(255, 215, 0, 0.8)';
+
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, size, 0, TAU);
+        ctx.fill();
+      });
+    }
+
+    // ===== NEW BASE SYSTEM VISUALIZATIONS =====
+
+    function drawBaseSystem(t, base, colors) {
+      const w = canvas.width, h = canvas.height;
+      const cx = w / 2, cy = h / 2;
+      const maxR = Math.min(w, h) * 0.43;
+
+      // Convert Moss60 sequences to target base and display
+      for (let ring = 0; ring < 60; ring++) {
+        const idx = ring % 60;
+        const s = MOSS60.getState(idx);
+
+        // Convert the digit combination to target base
+        const num = s.red * 100 + s.black * 10 + s.blue;
+        const baseDigits = toBase(num, base);
+
+        const baseR = maxR * (ring / 60);
+        const theta = TAU * ring / 60;
+
+        // Display each digit in the base representation
+        for (let d = 0; d < baseDigits.length; d++) {
+          const digit = baseDigits[d];
+          const rOffset = baseR + (d * maxR * 0.08);
+
+          const x = cx + rOffset * Math.cos(theta + t * state.rotation * 0.2);
+          const y = cy + rOffset * Math.sin(theta + t * state.rotation * 0.2);
+
+          const color = colors[digit];
+          const pulse = 0.7 + 0.3 * Math.sin(t * 2 + ring * 0.1 + d);
+
+          ctx.fillStyle = color;
+          ctx.globalAlpha = pulse * state.intensity;
+
+          const size = 3 + pulse * 2;
+          ctx.beginPath();
+          ctx.arc(x, y, size, 0, TAU);
+          ctx.fill();
+        }
+      }
+
+      ctx.globalAlpha = 1;
+    }
+
+    function drawBinary(t) {
+      drawBaseSystem(t, 2, BASE_COLORS[2]);
+    }
+
+    function drawTernary(t) {
+      drawBaseSystem(t, 3, BASE_COLORS[3]);
+    }
+
+    function drawQuinary(t) {
+      drawBaseSystem(t, 5, BASE_COLORS[5]);
+    }
+
+    function drawOctal(t) {
+      drawBaseSystem(t, 8, BASE_COLORS[8]);
+    }
+
+    function drawDecimal(t) {
+      drawBaseSystem(t, 10, BASE_COLORS[10]);
+    }
+
+    function drawDuodecimal(t) {
+      drawBaseSystem(t, 12, BASE_COLORS[12]);
+    }
+
+    // Phyllotaxis from unified engine
+    function drawPhyllotaxis(t) {
+      const w = canvas.width, h = canvas.height;
+      const cx = w / 2, cy = h / 2;
+      const N = 1500;
+      const golden = Math.PI * (3 - Math.sqrt(5));
+      const maxR = Math.min(w, h) * 0.47;
+
+      for (let n = 0; n < N; n++) {
+        const baseR = maxR * Math.sqrt(n / N);
+        const baseAng = n * golden + 0.25 * t * state.rotation;
+        const k = n % 60;
+        const s = MOSS60.getState(k);
+
+        const rScale = 0.7 + 0.3 * (s.lukas / 9);
+        const angOffset = s.sector * (Math.PI / 6) * 0.15;
+        const r = baseR * rScale;
+        const ang = baseAng + angOffset;
+
+        const x = cx + r * Math.cos(ang);
+        const y = cy + r * Math.sin(ang);
+
+        let color;
+        const pulse = 0.5 + 0.4 * Math.sin(t * 2 + n * 0.03);
+
+        if (s.lineage === 'red') color = `rgba(255, 52, 85, ${pulse * state.intensity})`;
+        else if (s.lineage === 'blue') color = `rgba(68, 170, 255, ${pulse * state.intensity})`;
+        else color = `rgba(255, 215, 0, ${pulse * state.intensity * 0.7})`;
+
+        const size = (1.5 + 1.3 * pulse);
+
+        ctx.fillStyle = color;
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(ang);
+        ctx.fillRect(-size / 2, -size / 2, size, size);
+        ctx.restore();
+      }
+    }
+
+    // Hex Grid
+    function drawHexGrid(t) {
+      const w = canvas.width, h = canvas.height;
+      const cx = w / 2, cy = h / 2;
+      const radius = 10;
+      const cols = 22, rows = 22;
+
+      for (let q = -cols; q <= cols; q++) {
+        for (let r = -rows; r <= rows; r++) {
+          const x = radius * (Math.sqrt(3) * q + Math.sqrt(3) / 2 * r);
+          const y = radius * (3 / 2 * r);
+          const dist = Math.hypot(x, y);
+          if (dist > Math.min(w, h) * 0.46) continue;
+
+          const sx = cx + x;
+          const sy = cy + y;
+
+          const idx = (q * q + r * r + 1000) >>> 0;
+          const k = idx % 60;
+          const s = MOSS60.getState(k);
+
+          let color;
+          const pulse = 0.6 + 0.3 * Math.sin(t * 2 + idx * 0.02);
+
+          if (s.lineage === 'red') color = `rgba(255, 52, 85, ${pulse * state.intensity * 0.75})`;
+          else if (s.lineage === 'blue') color = `rgba(68, 170, 255, ${pulse * state.intensity * 0.75})`;
+          else color = `rgba(255, 215, 0, ${pulse * state.intensity * 0.6})`;
+
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          for (let i = 0; i < 6; i++) {
+            const a = Math.PI / 3 * i + 0.05 * t * state.rotation;
+            const px = sx + radius * Math.cos(a);
+            const py = sy + radius * Math.sin(a);
+            if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+          }
+          ctx.closePath();
+          ctx.fill();
+        }
+      }
+    }
+
+    // Lo Shu tiles
+    function drawLoShu(t) {
+      const LO_SHU = [[8, 1, 6], [3, 5, 7], [4, 9, 2]];
+
+      const w = canvas.width, h = canvas.height;
+      const TILE_COLS = 16, TILE_ROWS = 9;
+      const CELLS_X = TILE_COLS * 3;
+      const CELLS_Y = TILE_ROWS * 3;
+      const CELL_W = w / CELLS_X;
+      const CELL_H = h / CELLS_Y;
+
+      const digitColors = BASE_COLORS[10];
+
+      for (let ty = 0; ty < TILE_ROWS; ty++) {
+        for (let tx = 0; tx < TILE_COLS; tx++) {
+          const orientation = (ty * TILE_COLS + tx) % 4;
+
+          for (let r = 0; r < 3; r++) {
+            for (let c = 0; c < 3; c++) {
+              let digit;
+              if (orientation === 0) digit = LO_SHU[r][c];
+              else if (orientation === 1) digit = LO_SHU[2 - c][r];
+              else if (orientation === 2) digit = LO_SHU[2 - r][2 - c];
+              else digit = LO_SHU[c][2 - r];
+
+              const cellX = tx * 3 + c;
+              const cellY = ty * 3 + r;
+              const x = cellX * CELL_W;
+              const y = cellY * CELL_H;
+
+              const color = digitColors[digit - 1];
+              const pulse = 0.4 + 0.3 * Math.sin(t * 1.6 + digit * 0.8);
+
+              ctx.fillStyle = color;
+              ctx.globalAlpha = (0.4 + pulse) * state.intensity;
+              ctx.fillRect(x, y, CELL_W + 0.5, CELL_H + 0.5);
+            }
+          }
+        }
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // Metatron
+    function drawMetatron(t) {
+      const w = canvas.width, h = canvas.height;
+      const cx = w / 2, cy = h / 2;
+      const R = Math.min(w, h) * 0.18;
+
+      const nodes = [{ cx, cy, R }];
+      for (let k = 0; k < 6; k++) {
+        const angle = (Math.PI / 3) * k;
+        nodes.push({
+          cx: cx + R * Math.cos(angle),
+          cy: cy + R * Math.sin(angle),
+          R
+        });
+      }
+
+      // Flower circles
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
+      ctx.lineWidth = 1;
+      for (const node of nodes) {
+        ctx.beginPath();
+        ctx.arc(node.cx, node.cy, node.R, 0, TAU);
+        ctx.stroke();
+      }
+
+      // Metatron lines
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.13)';
+      ctx.lineWidth = 0.7;
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          ctx.beginPath();
+          ctx.moveTo(nodes[i].cx, nodes[i].cy);
+          ctx.lineTo(nodes[j].cx, nodes[j].cy);
+          ctx.stroke();
+        }
+      }
+
+      // Digit mandalas in each node
+      for (const node of nodes) {
+        const rDigits = node.R * 0.75;
+        for (let i = 0; i < 60; i++) {
+          const s = MOSS60.getState(i);
+          const angle = (TAU * i / 60) + t * state.rotation * 0.6;
+          const radius = rDigits * (0.65 + 0.28 * (s.lukas / 9));
+          const x = node.cx + radius * Math.cos(angle);
+          const y = node.cy + radius * Math.sin(angle);
+
+          let color;
+          const pulse = 0.6 + 0.4 * Math.sin(t * 2.4 + i);
+
+          if (s.lineage === 'red') color = `rgba(255, 52, 85, ${pulse * state.intensity})`;
+          else if (s.lineage === 'blue') color = `rgba(68, 170, 255, ${pulse * state.intensity})`;
+          else color = `rgba(255, 215, 0, ${pulse * state.intensity * 0.7})`;
+
+          const size = rDigits * 0.08 * (0.8 + 0.4 * pulse);
+          ctx.fillStyle = color;
+          ctx.fillRect(x - size / 2, y - size / 2, size, size);
+        }
+      }
+    }
+
+    // Yantra tiles
+    function drawTiles(t) {
+      const w = canvas.width, h = canvas.height;
+      const cx = w / 2, cy = h / 2;
+      const TILE_W = w / 4, TILE_H = h / 3;
+
+      const morph = 0.5 + 0.5 * Math.sin(t * 0.5 * state.rotation);
+
+      for (let ty = 0; ty < 3; ty++) {
+        for (let tx = 0; tx < 4; tx++) {
+          const tileCx = tx * TILE_W + TILE_W / 2;
+          const tileCy = ty * TILE_H + TILE_H / 2;
+          const radius = Math.min(TILE_W, TILE_H) * 0.35;
+          const offset = ((ty * 4 + tx) * 7) % 60;
+
+          for (let i = 0; i < 60; i++) {
+            const k = (i + offset) % 60;
+            const s = MOSS60.getState(k);
+
+            const angle = (TAU * i / 60) + t * 2 * state.rotation;
+
+            // Circle position
+            const cx1 = tileCx + radius * Math.cos(angle);
+            const cy1 = tileCy + radius * Math.sin(angle);
+
+            // Triangle position (simplified)
+            const triAng = angle * 0.33;
+            const cx2 = tileCx + radius * 0.85 * Math.cos(triAng);
+            const cy2 = tileCy + radius * 0.85 * Math.sin(triAng);
+
+            const x = cx1 * (1 - morph) + cx2 * morph;
+            const y = cy1 * (1 - morph) + cy2 * morph;
+
+            let color;
+            const pulse = 0.6 + 0.4 * Math.sin(t * 2 + i * 0.03);
+
+            if (s.lineage === 'red') color = `rgba(255, 52, 85, ${pulse * state.intensity})`;
+            else if (s.lineage === 'blue') color = `rgba(68, 170, 255, ${pulse * state.intensity})`;
+            else color = `rgba(255, 215, 0, ${pulse * state.intensity * 0.7})`;
+
+            const size = 2.4;
+            ctx.fillStyle = color;
+            ctx.fillRect(x - size / 2, y - size / 2, size, size);
+          }
+        }
+      }
+    }
+
+    // CA Shapes
+    function drawShapes(t) {
+      const w = canvas.width, h = canvas.height;
+      const COLS = 60, ROWS = 30;
+      const cellW = w / COLS, cellH = h / ROWS;
+
+      const currentRow = Math.floor(t * 2) % ROWS;
+
+      for (let row = 0; row < ROWS; row++) {
+        for (let col = 0; col < COLS; col++) {
+          const idx = col % 60;
+          const s = MOSS60.getState(idx);
+
+          const seed = (row * 7 + col * 11 + Math.floor(t * 5)) % 256;
+          const rule = (90 + s.red * 10 + s.black * 5 + s.blue * 3) % 256;
+          const alive = ((rule >> (seed % 8)) & 1) === 1;
+
+          if (alive) {
+            const cx = col * cellW + cellW / 2;
+            const cy = row * cellH + cellH / 2;
+            const glow = row === currentRow ? 1.0 : 0.6;
+
+            let color;
+            if (s.lineage === 'red') color = `rgba(255, 52, 85, ${glow * state.intensity})`;
+            else if (s.lineage === 'blue') color = `rgba(68, 170, 255, ${glow * state.intensity})`;
+            else color = `rgba(255, 215, 0, ${glow * state.intensity * 0.8})`;
+
+            const size = Math.min(cellW, cellH) * 0.4;
+
+            ctx.fillStyle = color;
+            if (s.lineage === 'red') {
+              // Diamond
+              ctx.save();
+              ctx.translate(cx, cy);
+              ctx.rotate(t * 0.5);
+              ctx.beginPath();
+              ctx.moveTo(0, -size);
+              ctx.lineTo(size, 0);
+              ctx.lineTo(0, size);
+              ctx.lineTo(-size, 0);
+              ctx.closePath();
+              ctx.fill();
+              ctx.restore();
+            } else if (s.lineage === 'blue') {
+              // Circle
+              ctx.beginPath();
+              ctx.arc(cx, cy, size, 0, TAU);
+              ctx.fill();
+            } else {
+              // Hexagon
+              ctx.beginPath();
+              for (let i = 0; i < 6; i++) {
+                const a = (Math.PI / 3) * i + t * 0.3;
+                const x = cx + size * Math.cos(a);
+                const y = cy + size * Math.sin(a);
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+              }
+              ctx.closePath();
+              ctx.fill();
+            }
+          }
+        }
+      }
+    }
+
+    // ===== MODE DISPATCHER =====
+    const modes = {
+      quantum: drawQuantumField,
+      prime: drawPrimeLattice,
+      harmonic: drawHarmonicWeb,
+      cellular: drawCellularEvolution,
+      yantra: drawYantraBloom,
+      cryptic: drawCrypticDance,
+      hepta: drawHeptaSync,
+      tesseract: drawTesseract,
+      phyllo: drawPhyllotaxis,
+      hexgrid: drawHexGrid,
+      loshu: drawLoShu,
+      metatron: drawMetatron,
+      tiles: drawTiles,
+      shapes: drawShapes,
+      binary: drawBinary,
+      ternary: drawTernary,
+      quinary: drawQuinary,
+      octal: drawOctal,
+      decimal: drawDecimal,
+      duodec: drawDuodecimal
+    };
+
+    // ===== ANIMATION LOOP =====
+    function animate(timestamp) {
+      if (!state.running) {
+        requestAnimationFrame(animate);
+        return;
+      }
+
+      const dt = timestamp - state.lastFrameTime;
+      state.fps = 1000 / dt;
+      state.lastFrameTime = timestamp;
+      state.time = timestamp / 1000;
+      state.frame++;
+
+      // Clear canvas
+      ctx.fillStyle = 'rgba(5, 5, 20, 0.3)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw current mode
+      if (modes[state.mode]) {
+        modes[state.mode](state.time);
+      }
+
+      // Calculate resonance
+      const idx = Math.floor(state.time * 10) % 60;
+      const s = MOSS60.getState(idx);
+
+      state.resonance.red = (s.red / 9) * state.redWeight;
+      state.resonance.black = (s.black / 9) * state.blackWeight;
+      state.resonance.blue = (s.blue / 9) * state.blueWeight;
+
+      // Update UI
+      if (state.frame % 10 === 0) updateUI();
+
+      requestAnimationFrame(animate);
+    }
+
+    // ===== EVENT HANDLERS =====
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.mode = btn.getAttribute('data-mode');
+      });
+    });
+
+    const sliders = {
+      intensity: (v) => { state.intensity = v; document.getElementById('intensity-val').textContent = v; },
+      rotation: (v) => { state.rotation = v; document.getElementById('rotation-val').textContent = v; },
+      layers: (v) => { state.layers = Math.round(v); document.getElementById('layers-val').textContent = Math.round(v); },
+      'red-weight': (v) => { state.redWeight = v; document.getElementById('red-weight-val').textContent = v; },
+      'black-weight': (v) => { state.blackWeight = v; document.getElementById('black-weight-val').textContent = v; },
+      'blue-weight': (v) => { state.blueWeight = v; document.getElementById('blue-weight-val').textContent = v; }
+    };
+
+    Object.keys(sliders).forEach(id => {
+      const input = document.getElementById(id);
+      input.addEventListener('input', (e) => {
+        sliders[id](parseFloat(e.target.value));
+      });
+    });
+
+    document.getElementById('reset-btn').addEventListener('click', () => {
+      state.time = 0;
+      state.frame = 0;
+    });
+
+    document.getElementById('freeze-btn').addEventListener('click', () => {
+      state.running = !state.running;
+      document.getElementById('freeze-btn').textContent = state.running ? 'Freeze' : 'Resume';
+    });
+
+    document.getElementById('fullscreen-btn').addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen();
+      } else {
+        document.exitFullscreen();
+      }
+    });
+
+    document.getElementById('screenshot-btn').addEventListener('click', () => {
+      const link = document.createElement('a');
+      link.download = `moss60_${state.mode}_${Date.now()}.png`;
+      link.href = canvas.toDataURL();
+      link.click();
+    });
+
+    document.getElementById('export-state-btn').addEventListener('click', () => {
+      const exportData = JSON.stringify({
+        mode: state.mode,
+        parameters: {
+          intensity: state.intensity,
+          rotation: state.rotation,
+          layers: state.layers,
+          weights: {
+            red: state.redWeight,
+            black: state.blackWeight,
+            blue: state.blueWeight
+          }
+        },
+        timestamp: state.time,
+        moss60State: MOSS60.getState(Math.floor(state.time * 10))
+      }, null, 2);
+
+      const blob = new Blob([exportData], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.download = `moss60_state_${Date.now()}.json`;
+      link.href = url;
+      link.click();
+      URL.revokeObjectURL(url);
+    });
+
+    // Keyboard shortcuts
+    window.addEventListener('keydown', (e) => {
+      if (e.key === ' ') {
+        e.preventDefault();
+        document.getElementById('freeze-btn').click();
+      } else if (e.key >= '1' && e.key <= '9') {
+        const modeKeys = ['quantum', 'prime', 'harmonic', 'cellular', 'yantra', 'cryptic', 'hepta', 'tesseract', 'phyllo'];
+        const idx = parseInt(e.key) - 1;
+        if (idx < modeKeys.length) {
+          state.mode = modeKeys[idx];
+          document.querySelectorAll('.mode-btn').forEach((btn, i) => {
+            btn.classList.toggle('active', btn.getAttribute('data-mode') === state.mode);
+          });
+        }
+      } else if (e.key === 'q') state.mode = 'quantum';
+      else if (e.key === 'p') state.mode = 'prime';
+      else if (e.key === 'h') state.mode = 'harmonic';
+      else if (e.key === 'b') state.mode = 'binary';
+      else if (e.key === 't') state.mode = 'ternary';
+    });
+
+    // ===== START =====
+    updateUI();
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>

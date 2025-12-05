@@ -2,8 +2,6 @@
 
 A design spine for a unified 8-mode visualization playground. Use this to brief an AI coding assistant or guide future implementation. The focus is one engine with modular modes that share base-60, prime-aware utilities, and a consistent UI.
 
-> Quick start: open **EightfoldVisualEngine.html** for a working playground that wires up the shared utilities, global controls, and eight mode shells (Quantum Field + Prime Lattice fully implemented; the rest scaffolded with prime-aware stubs).
-
 ## Architecture Overview
 
 - **Stack:** Single-page web app (HTML/JS or TypeScript) with Canvas (WebGL optional). Keep modules readable and composable.

@@ -182,7 +182,6 @@
         <option value="primeBloom">Prime Bloom</option>
         <option value="rotatingPrimes">Rotating Primes</option>
         <option value="modLattice">Mod Lattice</option>
-        <option value="starSpiral">Prime Star Spiral</option>
       </select>
       <label for="viz">Visualization</label>
       <select id="viz">
@@ -199,29 +198,6 @@
     </div>
     <textarea id="config-area" placeholder="Copy / edit preset JSON here"></textarea>
     <small>Presets capture grid size, palette, rule choice, and parameters. Paste JSON and click Load to apply live.</small>
-
-    <h2>Prompt Template</h2>
-    <textarea aria-label="rule prompt template" readonly>
-I have a 2D cellular automaton with:
-
-Grid size: [e.g. 60×60]
-States: integers mod 60
-Prime numbers within 1–59 treated as ‘special’ or ‘lit’ states.
-
-Please design a new rule preset that produces [describe desired vibe: e.g. ‘slowly rotating mandala’, ‘exploding starburst’, ‘breathing lattice’] using:
-
-Prime-sensitive neighbor rules,
-Base-60 cycles,
-Optional radial or angular structures (rings, spirals, star polygons).
-
-Output:
-
-A clear, step-by-step definition of the update rule.
-Parameters (e.g. thresholds, weights, number of steps per cycle).
-A suggested color mapping emphasizing primes.
-A short explanation of the emergent visual behavior and how it ties to the number theory.
-    </textarea>
-    <small>Use the template above to sketch new rule ideas, then translate them into a new entry in <code>rulePresets</code>.</small>
 
     <h2>Notes</h2>
     <small>
@@ -464,29 +440,6 @@ A short explanation of the emergent visual behavior and how it ties to the numbe
           const neighborSum = neighbors.reduce((a, b) => a + b, 0) % cycleLength;
           const resonance = primes.has(neighborSum) ? params.decayBias : 0;
           return (value + pulse + resonance + neighborSum) % cycleLength;
-        },
-      },
-      starSpiral: {
-        label: "Prime Star Spiral",
-        params: { radius: 2, ringPush: 4, resonance: 6, angleDiv: 5 },
-        fn: ({ value, x, y, neighbors, params, primes, cycleLength }) => {
-          const center = (params.size - 1) / 2;
-          const dx = x - center;
-          const dy = y - center;
-          const r = Math.hypot(dx, dy);
-          const angle = (Math.atan2(dy, dx) + tau) % tau;
-
-          const primeNeighbors = neighbors.filter((n) => primes.has(n % cycleLength)).length;
-          const neighborSum = neighbors.reduce((a, b) => a + b, 0) % cycleLength;
-          const sumPrime = primes.has(neighborSum);
-
-          const ringWave = isPrime(Math.round(r)) ? params.ringPush : 0;
-          const angularStep = Math.round((angle / tau) * params.cycleLength);
-          const starGate = Math.round(r) % params.angleDiv === 0 ? params.primeSensitivity : 0;
-          const base = value + primeNeighbors * params.primeSensitivity + ringWave + starGate;
-          const resonance = sumPrime ? params.resonance : params.decay;
-          const next = base + angularStep + resonance - params.decay;
-          return ((next % cycleLength) + cycleLength) % cycleLength;
         },
       },
     };

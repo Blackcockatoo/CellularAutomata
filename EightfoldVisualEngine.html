@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Eightfold Visual Engine of Moss</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b0f14;
+      --panel: #111726;
+      --accent: #9ef1c7;
+      --muted: #6b778d;
+      --border: #1c2233;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Inter", system-ui, -apple-system, sans-serif;
+      background: radial-gradient(circle at 20% 20%, rgba(158,241,199,0.06), transparent 35%),
+        radial-gradient(circle at 80% 0%, rgba(112,182,255,0.07), transparent 40%),
+        var(--bg);
+      color: #e8edf7;
+      height: 100vh;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+    }
+    aside {
+      padding: 16px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.3)), var(--panel);
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+    }
+    h1 { margin: 0 0 8px; font-size: 20px; letter-spacing: 0.02em; }
+    h2 { margin: 16px 0 8px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+    label { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; color: #cbd5e5; }
+    input[type="range"], select, button {
+      width: 100%;
+      background: #0f1726;
+      color: #e8edf7;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px;
+      font-size: 13px;
+    }
+    input[type="range"] { padding: 0; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    canvas { width: 100%; height: 100vh; background: rgba(0,0,0,0.2); }
+    .chips { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+    .chip {
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 8px 10px;
+      background: rgba(255,255,255,0.02);
+      color: #d7e4ff;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s ease, background 0.15s ease;
+      font-size: 12px;
+    }
+    .chip.active { border-color: var(--accent); background: rgba(158,241,199,0.08); color: #0d151c; }
+    .section { margin-bottom: 12px; }
+    .small { color: var(--muted); font-size: 12px; line-height: 1.5; }
+    #overlay { position: fixed; bottom: 12px; right: 12px; padding: 8px 10px; background: rgba(0,0,0,0.35); border: 1px solid var(--border); border-radius: 8px; font-size: 12px; color: #d9e4ff; }
+    code { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <aside>
+    <h1>Eightfold Engine</h1>
+    <div class="small">Unified playground for base-60 primes, sacred geometry, and cellular flows.</div>
+
+    <h2>Modes</h2>
+    <div class="chips" id="modeChips"></div>
+
+    <h2>Global Params</h2>
+    <div class="section">
+      <label>Speed <input id="speed" type="range" min="0.1" max="3" step="0.05" value="1"></label>
+      <label>Zoom <input id="zoom" type="range" min="0.4" max="2.5" step="0.05" value="1"></label>
+      <label>Prime Emphasis <input id="primeEmphasis" type="range" min="0.5" max="3" step="0.1" value="1.4"></label>
+      <label>Line Thickness <input id="lineThickness" type="range" min="0.5" max="3" step="0.1" value="1"></label>
+      <label>Mode Blend <input id="modeBlend" type="range" min="0" max="1" step="0.05" value="0"></label>
+      <label><span>Audio Reactive (stub)</span><input id="audioReactive" type="checkbox"></label>
+    </div>
+
+    <h2>Preset Helpers</h2>
+    <div class="section small">
+      <p>Keyboard: <strong>1–8</strong> to switch modes. Space toggles pause. Esc recenters.</p>
+      <p>The code is organized so you can drop in new modes by implementing the <code>VizMode</code> contract and registering it in <code>modes[]</code>.</p>
+    </div>
+
+    <h2>Scaffolding Notes</h2>
+    <div class="section small">
+      Quantum Field and Prime Lattice are fully implemented. Other modes include prime/base-60 aware stubs with TODOs to flesh out harmonic webs, yantra geometry, bit glyphs, hepta sync, and tesseract rotations.
+    </div>
+  </aside>
+  <canvas id="viewport"></canvas>
+  <div id="overlay"></div>
+
+  <script>
+    // ---------- Prime & base-60 utilities ----------
+    function buildPrimeSieve(n) {
+      const isPrime = new Uint8Array(n + 1);
+      isPrime.fill(1);
+      isPrime[0] = 0; isPrime[1] = 0;
+      for (let i = 2; i * i <= n; i++) {
+        if (isPrime[i]) {
+          for (let j = i * i; j <= n; j += i) isPrime[j] = 0;
+        }
+      }
+      return isPrime;
+    }
+
+    const PRIME_LIMIT = 120000;
+    const sieve = buildPrimeSieve(PRIME_LIMIT);
+    const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+
+    const mod60 = (n) => ((n % 60) + 60) % 60;
+    const stateToHue = (n) => mod60(n) * 6; // 0..360
+    const isPrime = (n) => (n >= 0 && n < sieve.length ? sieve[n] === 1 : false);
+
+    function colorForState(n, primeHighlight = isPrime(n), emphasis = 1.4) {
+      const hue = stateToHue(n);
+      const sat = primeHighlight ? Math.min(90, 65 * emphasis) : 55;
+      const light = primeHighlight ? Math.min(80, 55 + 20 * emphasis) : 42;
+      return `hsl(${hue}deg ${sat}% ${light}%)`;
+    }
+
+    function polarToCartesian(r, theta) {
+      return { x: r * Math.cos(theta), y: r * Math.sin(theta) };
+    }
+
+    // ---------- Global engine state ----------
+    const canvas = document.getElementById('viewport');
+    const ctx = canvas.getContext('2d');
+    const overlay = document.getElementById('overlay');
+    const chipsContainer = document.getElementById('modeChips');
+
+    const state = {
+      canvas,
+      ctx,
+      width: window.innerWidth - 320,
+      height: window.innerHeight,
+      time: 0,
+      frame: 0,
+      lastTime: performance.now(),
+      paused: false,
+      params: {
+        speed: 1,
+        zoom: 1,
+        primeEmphasis: 1.4,
+        lineThickness: 1,
+        modeBlend: 0,
+        audioReactive: false,
+      },
+    };
+
+    function resize() {
+      state.width = window.innerWidth - 320;
+      state.height = window.innerHeight;
+      canvas.width = state.width * window.devicePixelRatio;
+      canvas.height = state.height * window.devicePixelRatio;
+      ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // ---------- Mode helpers ----------
+    function makeChip(mode, index) {
+      const div = document.createElement('div');
+      div.className = 'chip';
+      div.textContent = `${index + 1}. ${mode.name}`;
+      div.addEventListener('click', () => switchMode(index));
+      return div;
+    }
+
+    function drawBackground() {
+      ctx.save();
+      ctx.fillStyle = '#070b11';
+      ctx.fillRect(0, 0, state.width, state.height);
+      ctx.restore();
+    }
+
+    // ---------- Mode implementations ----------
+
+    const quantumField = {
+      id: 'quantum-field',
+      name: 'Quantum Field',
+      params: { maxPoints: 2000, rotationSpeed: 0.25, primeGlowStrength: 1.5 },
+      init() {},
+      update(dt) {
+        this.params.phase = (this.params.phase || 0) + dt * this.params.rotationSpeed * state.params.speed;
+      },
+      draw() {
+        const { width, height } = state;
+        const cx = width / 2;
+        const cy = height / 2;
+        const baseRadius = Math.min(width, height) * 0.007 * state.params.zoom;
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(this.params.phase || 0);
+        for (let n = 1; n <= this.params.maxPoints; n++) {
+          const angle = n * goldenAngle;
+          const radius = baseRadius * Math.sqrt(n);
+          const { x, y } = polarToCartesian(radius, angle);
+          const prime = isPrime(n);
+          const color = colorForState(n, prime, state.params.primeEmphasis);
+          const size = prime ? 2.4 * (this.params.primeGlowStrength) : 1.4;
+          ctx.fillStyle = color;
+          ctx.beginPath();
+          ctx.arc(x, y, size, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+    };
+
+    const primeLattice = {
+      id: 'prime-lattice',
+      name: 'Prime Lattice',
+      params: { gridSize: 16, padding: 3, waveSpeed: 0.8, waveAmplitude: 0.4 },
+      init() {},
+      update(dt) {
+        this.params.phase = (this.params.phase || 0) + dt * this.params.waveSpeed * state.params.speed;
+      },
+      draw() {
+        const { width, height } = state;
+        const g = this.params.gridSize;
+        const cellSize = Math.min(width, height) / g;
+        ctx.save();
+        ctx.translate((width - cellSize * g) / 2, (height - cellSize * g) / 2);
+        for (let y = 0; y < g; y++) {
+          for (let x = 0; x < g; x++) {
+            const idx = x + y * g;
+            const prime = isPrime(idx);
+            const hue = stateToHue(idx + state.frame);
+            const wave = Math.sin((x + y) * 0.35 + (this.params.phase || 0)) * this.params.waveAmplitude;
+            const baseColor = `hsl(${hue}deg 55% ${42 + wave * 18}%)`;
+            ctx.fillStyle = prime ? colorForState(idx, true, state.params.primeEmphasis) : baseColor;
+            ctx.fillRect(
+              x * cellSize + this.params.padding,
+              y * cellSize + this.params.padding,
+              cellSize - this.params.padding * 2,
+              cellSize - this.params.padding * 2
+            );
+            if (prime) {
+              ctx.strokeStyle = `hsla(${hue}deg 90% 80% / 0.9)`;
+              ctx.lineWidth = state.params.lineThickness;
+              ctx.strokeRect(
+                x * cellSize + this.params.padding,
+                y * cellSize + this.params.padding,
+                cellSize - this.params.padding * 2,
+                cellSize - this.params.padding * 2
+              );
+            }
+          }
+        }
+        ctx.restore();
+      }
+    };
+
+    const harmonicWeb = {
+      id: 'harmonic-web',
+      name: 'Harmonic Web (stub)',
+      params: { rings: 6, nodes: 12, maxHarmonic: 9 },
+      init() {},
+      update(dt) {
+        this.params.phase = (this.params.phase || 0) + dt * 0.4 * state.params.speed;
+      },
+      draw() {
+        const { width, height } = state;
+        const cx = width / 2;
+        const cy = height / 2;
+        const baseRadius = Math.min(width, height) * 0.07 * state.params.zoom;
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate((this.params.phase || 0) * 0.3);
+        for (let r = 1; r <= this.params.rings; r++) {
+          const radius = baseRadius * r;
+          for (let i = 0; i < this.params.nodes; i++) {
+            const theta = (Math.PI * 2 * i) / this.params.nodes;
+            const { x, y } = polarToCartesian(radius, theta + (this.params.phase || 0) * 0.15 * r);
+            const idx = r * i;
+            const prime = isPrime(idx);
+            ctx.fillStyle = colorForState(idx, prime, state.params.primeEmphasis);
+            ctx.beginPath();
+            ctx.arc(x, y, prime ? 4 : 2.5, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+        ctx.restore();
+        // TODO: Add harmonic ratio edge connections and prime-weighted lines.
+      }
+    };
+
+    const caEvolution = {
+      id: 'ca-evolution',
+      name: 'CA Evolution (stub)',
+      params: { width: 48, height: 48, primeThreshold: 3, decay: 1 },
+      grid: [],
+      next: [],
+      init() {
+        const { width, height } = this.params;
+        this.grid = new Uint8Array(width * height).map((_, i) => mod60(i * 7 + 13));
+        this.next = new Uint8Array(width * height);
+      },
+      update() {
+        const { width, height, primeThreshold, decay } = this.params;
+        const dirs = [
+          [-1, -1], [0, -1], [1, -1],
+          [-1, 0],           [1, 0],
+          [-1, 1],  [0, 1],  [1, 1],
+        ];
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            let sum = 0, primeNeighbors = 0;
+            for (const [dx, dy] of dirs) {
+              const nx = (x + dx + width) % width;
+              const ny = (y + dy + height) % height;
+              const val = this.grid[ny * width + nx];
+              sum += val;
+              if (isPrime(val)) primeNeighbors++;
+            }
+            const idx = y * width + x;
+            const current = this.grid[idx];
+            let next = isPrime(sum) ? mod60(current + 1) : mod60(current - decay);
+            if (primeNeighbors >= primeThreshold) next = mod60(next + primeNeighbors);
+            this.next[idx] = next;
+          }
+        }
+        [this.grid, this.next] = [this.next, this.grid];
+      },
+      draw() {
+        const { width, height } = state;
+        const gW = this.params.width;
+        const gH = this.params.height;
+        const cellSize = Math.min(width / gW, height / gH);
+        ctx.save();
+        ctx.translate((width - cellSize * gW) / 2, (height - cellSize * gH) / 2);
+        for (let y = 0; y < gH; y++) {
+          for (let x = 0; x < gW; x++) {
+            const idx = y * gW + x;
+            const val = this.grid[idx];
+            const prime = isPrime(val);
+            ctx.fillStyle = colorForState(val, prime, state.params.primeEmphasis);
+            ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+          }
+        }
+        ctx.restore();
+        // TODO: expose rule configuration and richer visualization overlays.
+      }
+    };
+
+    const yantraBloom = {
+      id: 'yantra-bloom',
+      name: 'Yantra Bloom (stub)',
+      params: { triangles: 6, circles: 4 },
+      init() {},
+      update(dt) { this.params.phase = (this.params.phase || 0) + dt * 0.25 * state.params.speed; },
+      draw() {
+        const { width, height } = state;
+        const cx = width / 2;
+        const cy = height / 2;
+        const base = Math.min(width, height) * 0.18 * state.params.zoom;
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate((this.params.phase || 0) * 0.3);
+        ctx.lineWidth = state.params.lineThickness;
+        for (let i = 0; i < this.params.triangles; i++) {
+          const angle = (Math.PI * 2 * i) / this.params.triangles;
+          ctx.strokeStyle = colorForState(i * 7, isPrime(i), state.params.primeEmphasis);
+          ctx.beginPath();
+          for (let v = 0; v < 3; v++) {
+            const theta = angle + (Math.PI * 2 * v) / 3;
+            const { x, y } = polarToCartesian(base, theta);
+            if (v === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+          }
+          ctx.closePath();
+          ctx.stroke();
+        }
+        for (let c = 1; c <= this.params.circles; c++) {
+          ctx.strokeStyle = colorForState(c * 11, isPrime(c), state.params.primeEmphasis);
+          ctx.beginPath();
+          ctx.arc(0, 0, (base * c) / this.params.circles, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        ctx.restore();
+        // TODO: Add Sri Yantra intersections, gating squares, and prime-index blooms.
+      }
+    };
+
+    const crypticDance = {
+      id: 'cryptic-dance',
+      name: 'Cryptic Dance (stub)',
+      params: { dancers: 48, primeMask: 19 },
+      init() { this.values = new Uint8Array(this.params.dancers).map((_, i) => (i * 73) & 0xff); },
+      update() {
+        const mask = this.params.primeMask;
+        for (let i = 0; i < this.values.length; i++) {
+          const jitter = (state.frame + i * 13) & 0xff;
+          this.values[i] ^= (mask ^ jitter);
+        }
+      },
+      draw() {
+        const { width, height } = state;
+        const glyphSize = 18 * state.params.zoom;
+        const cols = Math.floor(width / (glyphSize * 1.4));
+        ctx.save();
+        ctx.translate((width - cols * glyphSize * 1.4) / 2, height * 0.1);
+        this.values.forEach((val, idx) => {
+          const col = idx % cols;
+          const row = Math.floor(idx / cols);
+          const x = col * glyphSize * 1.4;
+          const y = row * glyphSize * 1.4;
+          ctx.strokeStyle = colorForState(val, isPrime(val), state.params.primeEmphasis);
+          ctx.lineWidth = state.params.lineThickness;
+          for (let bit = 0; bit < 8; bit++) {
+            const on = (val >> bit) & 1;
+            ctx.fillStyle = on ? colorForState(bit * 7, isPrime(bit), state.params.primeEmphasis) : '#0d1119';
+            ctx.fillRect(x, y + (7 - bit) * (glyphSize / 9), glyphSize, glyphSize / 10);
+          }
+          ctx.strokeRect(x, y, glyphSize, glyphSize);
+        });
+        ctx.restore();
+        // TODO: implement radial glyphs and neighbor/XOR choreography.
+      }
+    };
+
+    const heptaSync = {
+      id: 'hepta-sync',
+      name: 'Hepta-Sync (stub)',
+      params: { layers: 7 },
+      init() {},
+      update(dt) { this.params.phase = (this.params.phase || 0) + dt * 0.2 * state.params.speed; },
+      draw() {
+        const { width, height } = state;
+        const cx = width / 2;
+        const cy = height / 2;
+        ctx.save();
+        ctx.translate(cx, cy);
+        for (let l = 1; l <= this.params.layers; l++) {
+          const radius = Math.min(width, height) * 0.05 * l * state.params.zoom;
+          const angleOffset = (this.params.phase || 0) * 0.4 * l;
+          ctx.strokeStyle = colorForState(l * 9, isPrime(l), state.params.primeEmphasis);
+          ctx.lineWidth = state.params.lineThickness;
+          ctx.beginPath();
+          for (let v = 0; v < 7; v++) {
+            const theta = angleOffset + (Math.PI * 2 * v) / 7;
+            const { x, y } = polarToCartesian(radius, theta);
+            if (v === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+          }
+          ctx.closePath();
+          ctx.stroke();
+        }
+        ctx.restore();
+        // TODO: add vertex linking lattice and mod-60 phase pulses.
+      }
+    };
+
+    const tesseract = {
+      id: 'tesseract',
+      name: '4D Tesseract (stub)',
+      params: { rotationSpeed: 0.6, scale: 110 },
+      init() {
+        this.vertices = [];
+        for (let x of [-1, 1]) for (let y of [-1, 1]) for (let z of [-1, 1]) for (let w of [-1, 1]) this.vertices.push([x, y, z, w]);
+      },
+      update(dt) { this.params.phase = (this.params.phase || 0) + dt * this.params.rotationSpeed * state.params.speed; },
+      draw() {
+        const { width, height } = state;
+        const cx = width / 2, cy = height / 2;
+        const angle = this.params.phase || 0;
+        const cos = Math.cos(angle), sin = Math.sin(angle);
+        const projected = this.vertices.map(([x, y, z, w]) => {
+          // rotate in XW and YZ planes for simple motion
+          const xw = x * cos - w * sin;
+          const yw = y * cos - z * sin;
+          const zw = z * cos + y * sin;
+          const ww = w * cos + x * sin;
+          const depth = 1 / (2 - ww * 0.5);
+          return [xw * depth, yw * depth, depth];
+        });
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.scale(this.params.scale * state.params.zoom, this.params.scale * state.params.zoom);
+        ctx.strokeStyle = '#8bd3ff';
+        ctx.lineWidth = state.params.lineThickness / 2;
+        for (let i = 0; i < projected.length; i++) {
+          const a = projected[i];
+          for (let j = i + 1; j < projected.length; j++) {
+            const b = projected[j];
+            const diff = this.vertices[i].reduce((acc, v, idx) => acc + Math.abs(v - this.vertices[j][idx]), 0);
+            if (diff === 2) {
+              const primeEdge = isPrime(i + j);
+              ctx.strokeStyle = primeEdge ? colorForState(i + j, true, state.params.primeEmphasis) : 'rgba(255,255,255,0.3)';
+              ctx.beginPath();
+              ctx.moveTo(a[0], a[1]);
+              ctx.lineTo(b[0], b[1]);
+              ctx.stroke();
+            }
+          }
+        }
+        projected.forEach((p, i) => {
+          const prime = isPrime(i);
+          ctx.fillStyle = colorForState(i, prime, state.params.primeEmphasis);
+          ctx.beginPath();
+          ctx.arc(p[0], p[1], prime ? 0.06 : 0.04, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        ctx.restore();
+        // TODO: add full 4D rotation planes and interactive depth controls.
+      }
+    };
+
+    const modes = [
+      quantumField,
+      primeLattice,
+      harmonicWeb,
+      caEvolution,
+      yantraBloom,
+      crypticDance,
+      heptaSync,
+      tesseract,
+    ];
+
+    // ---------- UI wiring ----------
+    modes.forEach((mode, i) => chipsContainer.appendChild(makeChip(mode, i)));
+    let currentModeIndex = 0;
+    function switchMode(idx) {
+      currentModeIndex = idx;
+      modes[currentModeIndex].init(state);
+      [...chipsContainer.children].forEach((chip, i) => chip.classList.toggle('active', i === currentModeIndex));
+    }
+    switchMode(0);
+
+    document.getElementById('speed').addEventListener('input', (e) => state.params.speed = parseFloat(e.target.value));
+    document.getElementById('zoom').addEventListener('input', (e) => state.params.zoom = parseFloat(e.target.value));
+    document.getElementById('primeEmphasis').addEventListener('input', (e) => state.params.primeEmphasis = parseFloat(e.target.value));
+    document.getElementById('lineThickness').addEventListener('input', (e) => state.params.lineThickness = parseFloat(e.target.value));
+    document.getElementById('modeBlend').addEventListener('input', (e) => state.params.modeBlend = parseFloat(e.target.value));
+    document.getElementById('audioReactive').addEventListener('input', (e) => state.params.audioReactive = e.target.checked);
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key >= '1' && e.key <= '8') switchMode(Number(e.key) - 1);
+      if (e.key === ' ') { state.paused = !state.paused; }
+      if (e.key === 'Escape') ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
+    });
+
+    // ---------- Main loop ----------
+    function loop(now) {
+      const dt = Math.min(0.05, (now - state.lastTime) / 1000);
+      state.lastTime = now;
+      if (!state.paused) {
+        state.time += dt;
+        state.frame++;
+        modes[currentModeIndex].update(dt, state);
+      }
+      drawBackground();
+      modes[currentModeIndex].draw(state);
+      overlay.textContent = `${modes[currentModeIndex].name} | frame ${state.frame} | speed ${state.params.speed.toFixed(2)} | prime glow ${state.params.primeEmphasis.toFixed(2)}`;
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>

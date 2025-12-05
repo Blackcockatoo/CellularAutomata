@@ -181,7 +181,12 @@
 
     function drawBackground() {
       ctx.save();
-      ctx.fillStyle = '#070b11';
+      // Use the current frame number to select a digit from the BLACK string
+      const blackDigit = parseInt(BASE60_BLACK[state.frame % 60]);
+      // Map the digit (0-9) to a lightness value (e.g., 5% to 15%)
+      const lightness = 5 + (blackDigit / 9) * 10; // 5% to 15%
+      // Use a very dark blue/black color
+      ctx.fillStyle = \`hsl(220, 10%, \${lightness}%)\`;
       ctx.fillRect(0, 0, state.width, state.height);
       ctx.restore();
     }
@@ -470,7 +475,13 @@
         this.vertices = [];
         for (let x of [-1, 1]) for (let y of [-1, 1]) for (let z of [-1, 1]) for (let w of [-1, 1]) this.vertices.push([x, y, z, w]);
       },
-      update(dt) { this.params.phase = (this.params.phase || 0) + dt * this.params.rotationSpeed * state.params.speed; },
+      update(dt) {
+        // Use the current frame number to select a digit from the BLACK string
+        const blackDigit = parseInt(BASE60_BLACK[state.frame % 60]);
+        // Modulate rotation speed: base speed * global speed * (1 + blackDigit/9)
+        const speedMultiplier = 1 + (blackDigit / 9) * 0.5; // 1.0 to 1.5
+        this.params.phase = (this.params.phase || 0) + dt * this.params.rotationSpeed * state.params.speed * speedMultiplier;
+      },
       faces: [
         // X-Y faces (Z, W fixed)
         [0, 4, 6, 2], [1, 5, 7, 3], // W=-1, Z=-1 and W=1, Z=-1
